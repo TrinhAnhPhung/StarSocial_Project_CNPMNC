@@ -46,7 +46,6 @@ const People = () => {
                 <span className="material-icons text-blue-500">people</span>
                 <span>All Users</span>
             </h1>
-
             {/* ✅ 3. Thêm thanh tìm kiếm */}
             <div className="mb-8 relative">
                 <span className="material-icons absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">search</span>

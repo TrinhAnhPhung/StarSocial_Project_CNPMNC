@@ -67,7 +67,7 @@ const NotificationPage = () => {
     <div className="min-h-screen bg-gray-100 flex items-center justify-center p-4">
       <div className="w-full max-w-lg mx-auto p-6 bg-white rounded-2xl shadow-xl">
         
-        {/* ✅ HEADER ĐÃ ĐƯỢC CẬP NHẬT */}
+        
         <div className="relative flex justify-center items-center mb-6">
           <Link 
             to="/profile" 

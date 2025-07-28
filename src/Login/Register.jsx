@@ -5,9 +5,10 @@ import { useNavigate } from "react-router-dom";
 
 const Register = () => {
   const [formData, setFormData] = useState({
+    // Đổi 'email' lên đầu để khớp với giao diện
+    email: "",
     name: "",
     username: "",
-    email: "",
     password: "",
   });
   const [loading, setLoading] = useState(false);
@@ -29,8 +30,9 @@ const Register = () => {
     setSuccessMessage("");
 
     try {
+
       const response = await axios.post(
-        "http://localhost:5000/api/Register",
+        "http://localhost:5000/api/auth/register",
         formData
       );
       setSuccessMessage(response.data.message || "Đăng ký thành công!");
@@ -48,23 +50,37 @@ const Register = () => {
   };
 
   return (
-    <div className="flex flex-col lg:flex-row h-screen w-full">
-      {/* Left: Register Form */}
-      <div className="flex flex-col justify-center items-center bg-black w-full lg:w-1/2 p-8">
-        <div className="bg-gray-800 p-8 rounded-lg w-full max-w-sm">
-          <span className="flex items-center justify-center space-x-4">
-            <img src="./src/assets/Logo.png" className="w-20" alt="Logo" />
-            <h3 className="text-4xl font-semibold text-center bg-clip-text text-transparent bg-gradient-to-r from-white to-[#60a5fa]">
-              Starsocial
-            </h3>
-          </span>
-
-          <h3 className="text-3xl font-semibold text-center text-white mt-4">Đăng ký</h3>
-          <p className="text-sm text-center text-gray-400 mt-2">
-            Để sử dụng Starsocial, vui lòng nhập thông tin của bạn
+    <div className="bg-white flex flex-col justify-center items-center min-h-screen font-sans">
+      <div className="w-full max-w-sm">
+        {/* Main Register Box */}
+        <div className="border border-gray-300 p-10 rounded-sm">
+          <h1 className="text-5xl font-serif text-center text-black mb-4">
+            StarSocial
+          </h1>
+          <p className="text-gray-500 font-semibold text-center mb-4">
+            Đăng ký để xem ảnh và video từ bạn bè.
           </p>
 
-          <form className="space-y-6 mt-6" onSubmit={handleSubmit}>
+          <button className="w-full bg-blue-500 text-white font-semibold py-2 rounded-lg hover:bg-blue-600 mb-4">
+            Đăng nhập bằng Google
+          </button>
+
+          <div className="flex items-center my-4">
+            <div className="flex-grow border-t border-gray-300"></div>
+            <span className="mx-4 text-gray-500 font-semibold text-sm">HOẶC</span>
+            <div className="flex-grow border-t border-gray-300"></div>
+          </div>
+
+          <form className="space-y-2" onSubmit={handleSubmit}>
+            <input
+              id="email"
+              type="text" // Cho phép cả email và sđt
+              name="email"
+              value={formData.email}
+              onChange={handleChange}
+              placeholder="Email"
+              className="w-full px-3 py-2 rounded border border-gray-300 bg-gray-50 text-black placeholder-gray-400 text-sm focus:outline-none focus:ring-1 focus:ring-gray-400"
+            />
             <input
               id="name"
               type="text"
@@ -72,7 +88,7 @@ const Register = () => {
               value={formData.name}
               onChange={handleChange}
               placeholder="Tên đầy đủ"
-              className="w-full px-4 py-2 rounded-lg bg-gray-600 text-white placeholder-gray-400"
+              className="w-full px-3 py-2 rounded border border-gray-300 bg-gray-50 text-black placeholder-gray-400 text-sm focus:outline-none focus:ring-1 focus:ring-gray-400"
             />
             <input
               id="username"
@@ -81,16 +97,7 @@ const Register = () => {
               value={formData.username}
               onChange={handleChange}
               placeholder="Tên người dùng"
-              className="w-full px-4 py-2 rounded-lg bg-gray-600 text-white placeholder-gray-400"
-            />
-            <input
-              id="email"
-              type="email"
-              name="email"
-              value={formData.email}
-              onChange={handleChange}
-              placeholder="Email"
-              className="w-full px-4 py-2 rounded-lg bg-gray-600 text-white placeholder-gray-400"
+              className="w-full px-3 py-2 rounded border border-gray-300 bg-gray-50 text-black placeholder-gray-400 text-sm focus:outline-none focus:ring-1 focus:ring-gray-400"
             />
             <input
               id="password"
@@ -99,38 +106,59 @@ const Register = () => {
               value={formData.password}
               onChange={handleChange}
               placeholder="Mật khẩu"
-              className="w-full px-4 py-2 rounded-lg bg-gray-600 text-white placeholder-gray-400"
+              className="w-full px-3 py-2 rounded border border-gray-300 bg-gray-50 text-black placeholder-gray-400 text-sm focus:outline-none focus:ring-1 focus:ring-gray-400"
             />
+            
+            <div className="pt-2">
+                 <p className="text-xs text-center text-gray-500">
+                    Những người dùng dịch vụ của chúng tôi có thể đã tải thông tin liên hệ của bạn lên Instagram. <a href="#" className="text-blue-900">Tìm hiểu thêm</a>
+                </p>
+                 <p className="text-xs text-center text-gray-500 mt-2">
+                    Bằng cách đăng ký, bạn đồng ý với <a href="#" className="text-blue-900">Điều khoản</a>, <a href="#" className="text-blue-900">Chính sách quyền riêng tư</a> và <a href="#" className="text-blue-900">Chính sách cookie</a> của chúng tôi.
+                </p>
+            </div>
 
-            {error && <p className="text-red-500 text-sm text-center">{error}</p>}
-            {successMessage && <p className="text-green-500 text-sm text-center">{successMessage}</p>}
+
+            {error && <p className="text-red-500 text-xs text-center pt-2">{error}</p>}
+            {successMessage && <p className="text-green-500 text-xs text-center pt-2">{successMessage}</p>}
 
             <button
               type="submit"
               disabled={loading}
-              className="w-full py-2 px-4 bg-purple-600 text-white rounded-lg hover:bg-purple-700 flex justify-center"
+              className="w-full py-2 px-4 bg-blue-400 text-white font-semibold rounded-lg hover:bg-blue-500 disabled:bg-blue-300 mt-4"
             >
               {loading ? "Đang đăng ký..." : "Đăng ký"}
             </button>
           </form>
+        </div>
 
-          <p className="mt-4 text-center text-gray-400">
-            Đã có tài khoản?{" "}
-            <a href="/login" className="text-blue-400 hover:underline">
+        {/* Login Link Box */}
+        <div className="border border-gray-300 p-4 mt-3 rounded-sm text-center">
+          <p className="text-sm text-black">
+            Bạn có tài khoản?{" "}
+            <a href="/login" className="text-blue-500 font-semibold hover:underline">
               Đăng nhập
             </a>
           </p>
         </div>
       </div>
 
-      {/* Right: Image */}
-      <div className="hidden lg:block w-1/2 h-screen">
-        <img
-          src="./src/assets/side-img.jpg"
-          alt="Register side"
-          className="w-full h-full object-cover"
-        />
-      </div>
+       {/* Footer */}
+       <footer className="text-center mt-10 p-4">
+            <div className="flex justify-center flex-wrap gap-x-4 gap-y-2">
+                <a href="#" className="text-xs text-gray-500">Giới thiệu</a>
+                <a href="#" className="text-xs text-gray-500">Việc làm</a>
+                <a href="#" className="text-xs text-gray-500">Trợ giúp</a>
+                <a href="#" className="text-xs text-gray-500">API</a>
+                <a href="#" className="text-xs text-gray-500">Quyền riêng tư</a>
+                <a href="#" className="text-xs text-gray-500">Điều khoản</a>
+                <a href="#" className="text-xs text-gray-500">Vị trí</a>
+            </div>
+            <div className="mt-4 text-xs text-gray-500">
+                <span>Tiếng Việt</span>
+                <span className="ml-4">© 2025 Starsocial from StarTeam</span>
+            </div>
+        </footer>
     </div>
   );
 };

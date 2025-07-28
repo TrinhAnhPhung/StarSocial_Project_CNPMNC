@@ -40,36 +40,44 @@ const Login = () => {
   };
 
   const handleSubmit = async (e) => {
-    e.preventDefault();
-    const formErrors = validateForm();
-    if (Object.keys(formErrors).length > 0) {
-      setValidationErrors(formErrors);
-      return;
+  e.preventDefault();
+  const formErrors = validateForm();
+  if (Object.keys(formErrors).length > 0) {
+    setValidationErrors(formErrors);
+    return;
+  }
+
+  setLoading(true);
+  setError("");
+
+  try {
+    const response = await axios.post("http://localhost:5000/api/auth/login", formData);
+
+    // ✅ Lưu user và token
+    const { token, user } = response.data;
+    localStorage.setItem("token", token);
+    localStorage.setItem("user", JSON.stringify(user));
+
+    // ✅ Điều hướng theo role
+    if (user.role === "admin") {
+      navigate("/admin");
+    } else if (user.role === "handlereport") {
+      navigate("/processor");
+    } else {
+      navigate("/plashscreen");
     }
 
-    setLoading(true);
-    setError("");
-
-    try {
-      const response = await axios.post("http://localhost:5000/api/Login", formData);
-
-      // ✅ Nếu đăng nhập thành công
-      localStorage.setItem("token", response.data.token);
-      localStorage.setItem("username", response.data.username); // Lưu username cho Sidebar
-      localStorage.setItem("email", response.data.email);
-
-      navigate("/plashscreen"); // Hoặc trang chính của bạn
-    } catch (err) {
-      console.error("Login error:", err);
-      if (err.response && err.response.data && err.response.data.error) {
-        setError(err.response.data.error); // lỗi từ server (email không tồn tại, mật khẩu sai)
-      } else {
-        setError("Đã xảy ra lỗi, vui lòng thử lại.");
-      }
-    } finally {
-      setLoading(false);
+  } catch (err) {
+    console.error("Login error:", err);
+    if (err.response?.data?.error) {
+      setError(err.response.data.error);
+    } else {
+      setError("Đã xảy ra lỗi, vui lòng thử lại.");
     }
-  };
+  } finally {
+    setLoading(false);
+  }
+};
 
   const handleLanguageChange = (e) => {
     setLanguage(e.target.value);
