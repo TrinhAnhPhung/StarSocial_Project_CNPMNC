@@ -1,77 +1,100 @@
 import React, { useState, useEffect } from 'react';
-import { Link, useParams } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 
 const Profile = () => {
   const [userProfile, setUserProfile] = useState(null);
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState(null);
-    const [activeTab, setActiveTab] = useState('posts');
+  const [profileImage, setProfileImage] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [activeTab, setActiveTab] = useState('posts');
 
-    const { username } = useParams(); // ✅ Lấy username từ URL
+  useEffect(() => {
+    const email = localStorage.getItem("email"); // Lấy email người dùng từ localStorage
 
-    useEffect(() => {
-        if (!username) {
-            setLoading(false);
-            setError('Không tìm thấy username trong URL.');
-            return;
+    const fetchProfileInfo = async () => {
+      setLoading(true);
+      try {
+        // Gửi yêu cầu API để lấy thông tin người dùng
+        const response = await fetch(
+          `http://localhost:5000/api/profile/info?email=${email}`
+        );
+
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(
+            errorData.message || "Không thể tải hồ sơ người dùng"
+          );
         }
 
-        const fetchProfile = async () => {
-            setLoading(true);
-            try {
-                // ✅ Gọi đến API đã sửa ở backend
-                const response = await fetch(`http://localhost:5000/api/profile/${username}`);
+        const data = await response.json();
+        setUserProfile(data); // Lưu thông tin người dùng vào state
+      } catch (error) {
+        console.error("Lỗi khi lấy thông tin profile:", error);
+        setError(error.message);
+      } finally {
+        setLoading(false);
+      }
+    };
 
-                if (!response.ok) {
-                    const errorData = await response.json();
-                    throw new Error(errorData.error || 'Không tìm thấy người dùng');
-                }
+    const fetchProfileImage = async () => {
+      try {
+        // Gửi yêu cầu API để lấy hình ảnh người dùng
+        const imageResponse = await fetch(
+          `http://localhost:5000/api/profile/image?email=${email}`
+        );
 
-                const data = await response.json();
-                setUserProfile(data.user);
-            } catch (error) {
-                console.error('Lỗi khi lấy thông tin profile:', error);
-                setError(error.message);
-            } finally {
-                setLoading(false);
-            }
-        };
+        if (!imageResponse.ok) {
+          throw new Error("Không thể lấy hình ảnh người dùng");
+        }
 
-        fetchProfile();
-    }, [username]); // ✅ Chạy lại useEffect khi username trên URL thay đổi
+        const imageData = await imageResponse.json();
+        setProfileImage(imageData.profile_picture_url); // Lưu URL hình ảnh vào state
+      } catch (error) {
+        console.error("Lỗi khi lấy hình ảnh người dùng:", error);
+      }
+    };
 
-    if (loading) {
-        return <div className="text-white flex justify-center items-center h-screen">Đang tải...</div>;
+    if (email) {
+      fetchProfileInfo();
+      fetchProfileImage();
+    } else {
+      setError("Không tìm thấy email người dùng. Vui lòng đăng nhập lại.");
+      setLoading(false);
     }
+  }, []); // Chạy 1 lần khi component được mount
 
-    if (error || !userProfile) {
-        return <div className="text-red-500 flex justify-center items-center h-screen">{error || 'Không thể tải hồ sơ người dùng.'}</div>;
-    }
+  if (loading) {
+    return <div className="text-white flex justify-center items-center h-screen">Đang tải...</div>;
+  }
+
+  if (error || !userProfile) {
+    return <div className="text-red-500 flex justify-center items-center h-screen">{error || 'Không thể tải hồ sơ người dùng.'}</div>;
+  }
 
   return (
     <div className="bg-black text-white min-h-screen p-6">
       {/* Header Profile */}
       <div className="flex items-center justify-between mb-8">
-                <div className="flex items-center space-x-4">
-                    <img 
-                        src={userProfile.profile_picture_url || 'https://via.placeholder.com/150'} 
-                        alt="Profile Avatar" 
-                        className="w-24 h-24 rounded-full object-cover" 
-                    />
-                    <div>
-                        <h1 className="text-3xl font-bold">{userProfile.full_name}</h1>
-                        <p className="text-gray-400 text-lg">@{userProfile.username}</p>
-                    </div>
-                </div>
-                <Link 
-                    to="/editprofile" 
-                    className="bg-gray-700 hover:bg-gray-600 text-white py-2 px-4 rounded-lg"
-                >
-                    Chỉnh sửa hồ sơ
-                </Link>
-            </div>
+        <div className="flex items-center space-x-4">
+          <img 
+            src={profileImage || 'https://via.placeholder.com/150'} 
+            alt="Profile Avatar" 
+            className="w-24 h-24 rounded-full object-cover" 
+          />
+          <div>
+            <h1 className="text-3xl font-bold">{userProfile.full_name}</h1> {/* Hiển thị full name */}
+            <p className="text-gray-400 text-lg">@{userProfile.username}</p> {/* Hiển thị username */}
+          </div>
+        </div>
+        <Link 
+          to="/editprofile" 
+          className="bg-gray-700 hover:bg-gray-600 text-white py-2 px-4 rounded-lg"
+        >
+          Chỉnh sửa hồ sơ
+        </Link>
+      </div>
 
-            <p className="text-gray-300 mb-6">{userProfile.bio || 'Chưa có tiểu sử.'}</p>
+      <p className="text-gray-300 mb-6">{userProfile.bio || 'Chưa có tiểu sử.'}</p> {/* Hiển thị bio */}
 
       {/* Stats */}
       <div className="flex space-x-8 mb-8 text-lg">
