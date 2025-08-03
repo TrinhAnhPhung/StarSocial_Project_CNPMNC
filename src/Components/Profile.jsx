@@ -64,7 +64,7 @@ const Profile = () => {
   }, []); // Chạy 1 lần khi component được mount
 
   if (loading) {
-    return <div className="text-white flex justify-center items-center h-screen">Đang tải...</div>;
+    return <div className="text-gray-800 flex justify-center items-center h-screen">Đang tải...</div>;
   }
 
   if (error || !userProfile) {
@@ -72,59 +72,59 @@ const Profile = () => {
   }
 
   return (
-    <div className="bg-black text-white min-h-screen p-6">
+    <div className="bg-white text-gray-800 min-h-screen p-6">
       {/* Header Profile */}
       <div className="flex items-center justify-between mb-8">
         <div className="flex items-center space-x-4">
           <img 
             src={profileImage || 'https://via.placeholder.com/150'} 
             alt="Profile Avatar" 
-            className="w-24 h-24 rounded-full object-cover" 
+            className="w-24 h-24 rounded-full object-cover border border-gray-200" 
           />
           <div>
             <h1 className="text-3xl font-bold">{userProfile.full_name}</h1> {/* Hiển thị full name */}
-            <p className="text-gray-400 text-lg">@{userProfile.username}</p> {/* Hiển thị username */}
+            <p className="text-gray-500 text-lg">@{userProfile.username}</p> {/* Hiển thị username */}
           </div>
         </div>
         <Link 
           to="/editprofile" 
-          className="bg-gray-700 hover:bg-gray-600 text-white py-2 px-4 rounded-lg"
+          className="bg-gray-100 hover:bg-gray-200 text-gray-800 font-semibold py-2 px-4 rounded-lg border border-gray-300"
         >
           Chỉnh sửa hồ sơ
         </Link>
       </div>
 
-      <p className="text-gray-300 mb-6">{userProfile.bio || 'Chưa có tiểu sử.'}</p> {/* Hiển thị bio */}
+      <p className="text-gray-600 mb-6">{userProfile.bio || 'Chưa có tiểu sử.'}</p> {/* Hiển thị bio */}
 
       {/* Stats */}
       <div className="flex space-x-8 mb-8 text-lg">
         <div>
-          <span className="font-semibold">{userProfile.postsCount}</span> Posts
+          <span className="font-semibold">{userProfile.postsCount || 0}</span> Posts
         </div>
         <div>
-          <span className="font-semibold">{userProfile.followersCount}</span> Followers
+          <span className="font-semibold">{userProfile.followersCount || 0}</span> Followers
         </div>
         <div>
-          <span className="font-semibold">{userProfile.followingCount}</span> Following
+          <span className="font-semibold">{userProfile.followingCount || 0}</span> Following
         </div>
       </div>
 
       {/* Tabs */}
-      <div className="border-b border-gray-700 mb-6">
+      <div className="border-b border-gray-200 mb-6">
         <nav className="flex space-x-8">
           <button
-            className={`flex items-center space-x-2 py-3 px-4 border-b-2 ${
-              activeTab === 'posts' ? 'border-purple-500 text-purple-500' : 'border-transparent text-gray-400 hover:text-white'
-            } transition-colors`}
+            className={`flex items-center space-x-2 py-3 px-1 border-b-2 ${
+              activeTab === 'posts' ? 'border-blue-500 text-blue-500' : 'border-transparent text-gray-500 hover:text-gray-800'
+            } transition-colors font-medium`}
             onClick={() => setActiveTab('posts')}
           >
             <span className="material-icons">dashboard</span>
             <span>Posts</span>
           </button>
           <button
-            className={`flex items-center space-x-2 py-3 px-4 border-b-2 ${
-              activeTab === 'liked' ? 'border-purple-500 text-purple-500' : 'border-transparent text-gray-400 hover:text-white'
-            } transition-colors`}
+            className={`flex items-center space-x-2 py-3 px-1 border-b-2 ${
+              activeTab === 'liked' ? 'border-blue-500 text-blue-500' : 'border-transparent text-gray-500 hover:text-gray-800'
+            } transition-colors font-medium`}
             onClick={() => setActiveTab('liked')}
           >
             <span className="material-icons">favorite_border</span>
@@ -136,7 +136,8 @@ const Profile = () => {
       {/* Content based on active tab */}
       {activeTab === 'posts' ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          <div className="bg-gray-50 border rounded-lg overflow-hidden relative group">
+          {/* Example Post */}
+          <div className="bg-white border border-gray-200 rounded-lg overflow-hidden relative group">
             <img src="https://i.ibb.co/s3p12J2/coding-setup.png" alt="Post" className="w-full h-48 object-cover" />
             <div className="absolute inset-0 bg-black bg-opacity-40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
               <div className="flex items-center text-white text-lg">
@@ -144,9 +145,10 @@ const Profile = () => {
               </div>
             </div>
           </div>
+          {/* Add more posts here */}
         </div>
       ) : (
-        <div>Chưa có bài viết đã thích.</div>
+        <div className="text-gray-500">Chưa có bài viết đã thích.</div>
       )}
     </div>
   );
