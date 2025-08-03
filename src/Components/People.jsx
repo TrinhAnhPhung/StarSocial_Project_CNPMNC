@@ -4,23 +4,23 @@ import { Link } from 'react-router-dom';
 const People = () => {
     // Dữ liệu người dùng (không đổi)
     const [users, setUsers] = useState([
-        { id: 1, name: 'Trinhanhphung', username: 'Trinhanhphung', avatar: 'https://i.pravatar.cc/40?img=5', isFollowing: false },
-        { id: 2, name: 'Siddharth', username: 'Siddharth', avatar: 'https://i.pravatar.cc/40?img=6', isFollowing: false },
-        { id: 3, name: 'shivam', username: 'shivam79', avatar: 'https://i.pravatar.cc/40?img=7', isFollowing: true },
-        { id: 4, name: 'Sanayaa', username: 'Arii', avatar: 'https://i.pravatar.cc/40?img=8', isFollowing: false },
-        { id: 5, name: 'Kritika Roy', username: 'elysian_07', avatar: 'https://i.pravatar.cc/40?img=9', isFollowing: true },
-        { id: 6, name: 'Ronny', username: 'Roney', avatar: 'https://i.pravatar.cc/40?img=10', isFollowing: false },
-        { id: 7, name: 'Rahul', username: 'rahul_dev', avatar: 'https://i.pravatar.cc/40?img=11', isFollowing: false },
-        { id: 8, name: 'Deepak', username: 'deepak_dev', avatar: 'https://i.pravatar.cc/40?img=12', isFollowing: true },
-        { id: 9, name: 'Aisha Khan', username: 'aisha_k', avatar: 'https://i.pravatar.cc/40?img=13', isFollowing: false },
-        { id: 10, name: 'Ben Carter', username: 'bencarter', avatar: 'https://i.pravatar.cc/40?img=14', isFollowing: true },
-        { id: 11, name: 'Chloe Davis', username: 'chloe_d', avatar: 'https://i.pravatar.cc/40?img=15', isFollowing: false },
-        { id: 12, name: 'David Wilson', username: 'davidw', avatar: 'https://i.pravatar.cc/40?img=16', isFollowing: false },
-        { id: 13, name: 'Emily Brown', username: 'emily_b', avatar: 'https://i.pravatar.cc/40?img=17', isFollowing: true },
-        { id: 14, name: 'Frank Miller', username: 'frank_m', avatar: 'https://i.pravatar.cc/40?img=18', isFollowing: false },
-        { id: 15, name: 'Grace Lee', username: 'grace_lee', avatar: 'https://i.pravatar.cc/40?img=19', isFollowing: true },
-        { id: 16, name: 'Henry Garcia', username: 'henry_g', avatar: 'https://i.pravatar.cc/40?img=20', isFollowing: false },
-    ]);
+    { id: 1, name: 'Nguyễn Minh Quân', username: 'quan.nguyen', avatar: 'https://picsum.photos/id/21/200/200', isFollowing: false },
+    { id: 2, name: 'Trần Thị Ngọc Anh', username: 'ngocanh.tran', avatar: 'https://picsum.photos/id/22/200/200', isFollowing: false },
+    { id: 3, name: 'Lê Hoàng Long', username: 'longle.dev', avatar: 'https://picsum.photos/id/23/200/200', isFollowing: true },
+    { id: 4, name: 'Phạm Thu Hà', username: 'hanoi.pho', avatar: 'https://picsum.photos/id/24/200/200', isFollowing: false },
+    { id: 5, name: 'Vũ Đức Minh', username: 'minhvu.it', avatar: 'https://picsum.photos/id/25/200/200', isFollowing: true },
+    { id: 6, name: 'Hoàng Kiều Trang', username: 'trang.hoang98', avatar: 'https://picsum.photos/id/26/200/200', isFollowing: false },
+    { id: 7, name: 'Đặng Thành Nam', username: 'namthanh.dang', avatar: 'https://picsum.photos/id/27/200/200', isFollowing: false },
+    { id: 8, name: 'Bùi Thanh Thảo', username: 'thaobui.art', avatar: 'https://picsum.photos/id/28/200/200', isFollowing: true },
+    { id: 9, name: 'Hồ Anh Tuấn', username: 'tuanho.official', avatar: 'https://picsum.photos/id/29/200/200', isFollowing: false },
+    { id: 10, name: 'Ngô Phương Linh', username: 'linhngo.sg', avatar: 'https://picsum.photos/id/30/200/200', isFollowing: true },
+    { id: 11, name: 'Dương Gia Huy', username: 'huyduong.coder', avatar: 'https://picsum.photos/id/31/200/200', isFollowing: false },
+    { id: 12, name: 'Mai Thị Bích Phượng', username: 'phuongmai.25', avatar: 'https://picsum.photos/id/32/200/200', isFollowing: false },
+    { id: 13, name: 'Lý Quốc Bảo', username: 'baoly.photo', avatar: 'https://picsum.photos/id/33/200/200', isFollowing: true },
+    { id: 14, name: 'Phan Thảo Nguyên', username: 'thaonguyen.p', avatar: 'https://picsum.photos/id/34/200/200', isFollowing: false },
+    { id: 15, name: 'Châu Minh Khôi', username: 'khoichau.dev', avatar: 'https://picsum.photos/id/35/200/200', isFollowing: true },
+    { id: 16, name: 'Đỗ Mỹ Tâm', username: 'mytam.singer', avatar: 'https://picsum.photos/id/36/200/200', isFollowing: false },
+]);
 
     // ✅ 1. State để lưu trữ từ khóa tìm kiếm
     const [searchTerm, setSearchTerm] = useState('');

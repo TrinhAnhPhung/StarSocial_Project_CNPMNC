@@ -6,23 +6,23 @@ const images = [
     alt: "There's too matcha stress",
   },
   {
-    src: "/images/mint.png",
+    src: "https://i.pinimg.com/736x/29/68/bd/2968bde39e0e390c767f6b8c0d35bf39.jpg",
     alt: "Unpeppy mint",
   },
   {
-    src: "/images/sauce.png",
+    src: "https://i.pinimg.com/736x/d4/7b/bb/d47bbb51c69715a86d65b8e517686629.jpg",
     alt: "Don't be sauce-picious",
   },
   {
-    src: "/images/popcorn.png",
+    src: "https://i.pinimg.com/1200x/b1/b0/88/b1b0888af2a580139bd211bbfdeb1db6.jpg",
     alt: "Popcorn with lions",
   },
   {
-    src: "/images/dumplings.png",
+    src: "https://i.pinimg.com/736x/a0/0a/c5/a00ac5885e3f867e548a9671ba33435f.jpg",
     alt: "Dumpling cuties",
   },
   {
-    src: "/images/cat-dim-sum.png",
+    src: "https://i.pinimg.com/1200x/03/f6/60/03f660a93a49b886aa6871546c4b2bc5.jpg",
     alt: "Cat dim sum",
   },
 ];

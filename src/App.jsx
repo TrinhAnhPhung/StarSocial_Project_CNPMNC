@@ -11,7 +11,7 @@ import Saved from './Components/Saved';
 import CreatePost from './Components/CreatePost';
 import Profile from './Components/Profile';
 import Editprofile from './Components/Editprofile';
-import Notification from './Components/Notification';
+import Notification from './Components/notification';
 
 // Auth Components
 import Login from './Login/Login';

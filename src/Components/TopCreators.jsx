@@ -11,13 +11,13 @@ const TopCreators = () => {
     };
 
     // Suggested data, with 'isFollowing' status
-    const [suggestedCreators, setSuggestedCreators] = useState([
-        { id: 1, name: 'Lionel Messi', username: 'leomessi', avatar: 'https://i.pravatar.cc/150?img=1', isFollowing: false },
-        { id: 2, name: 'Cristiano Ronaldo', username: 'cristiano', avatar: 'https://i.pravatar.cc/150?img=2', isFollowing: false },
-        { id: 3, name: 'Sơn Tùng M-TP', username: 'sontungmtp', avatar: 'https://i.pravatar.cc/150?img=3', isFollowing: false },
-        { id: 4, name: 'Taylor Swift', username: 'taylorswift', avatar: 'https://i.pravatar.cc/150?img=4', isFollowing: false },
-        { id: 5, name: 'HIEUTHUHAI', username: 'hieuthuhai', avatar: 'https://i.pravatar.cc/150?img=5', isFollowing: false },
-    ]);
+   const [suggestedCreators, setSuggestedCreators] = useState([
+    { id: 1, name: 'LyLy', username: 'lie_ht.0712', avatar: 'https://picsum.photos/id/40/200/200', isFollowing: false },
+    { id: 2, name: 'Cristiano Ronaldo', username: 'cristiano', avatar: 'https://picsum.photos/id/41/200/200', isFollowing: false },
+    { id: 3, name: 'Sơn Tùng M-TP', username: 'sontungmtp', avatar: 'https://picsum.photos/id/42/200/200', isFollowing: false },
+    { id: 4, name: 'Taylor Swift', username: 'taylorswift', avatar: 'https://picsum.photos/id/43/200/200', isFollowing: false },
+    { id: 5, name: 'HIEUTHUHAI', username: 'hieuthuhai', avatar: 'https://picsum.photos/id/44/200/200', isFollowing: false },
+]);
 
     // Handler for Follow/Following button click
     const handleFollow = (creatorId) => {
@@ -43,14 +43,12 @@ const TopCreators = () => {
                         <span className="text-sm text-gray-500">{currentUser.name}</span>
                     </div>
                 </Link>
-                <button className="text-blue-500 cursor-pointer font-semibold text-sm hover:text-blue-700 transition-colors">
-                    Switch
-                </button>
+              
             </div>
 
             {/* "Suggestions for you" title */}
             <div className="flex items-center justify-between mb-4">
-                <h3 className="font-semibold text-gray-700 text-lg">Suggestions for you</h3>
+                <h3 className="font-semibold text-gray-700 text-1xl">Suggestions for you</h3>
                 <Link to="/people" className="text-blue-500 font-semibold text-sm hover:text-blue-700 transition-colors">
                     See all
                 </Link>

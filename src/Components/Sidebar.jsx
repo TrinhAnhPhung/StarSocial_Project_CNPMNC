@@ -27,21 +27,20 @@ const Sidebar = () => {
 
     const menuItems = [
         { name: "Home", path: "/", icon: "home" },
-        
         { name: "Explore", path: "/explore", icon: "explore" },
         { name: "People", path: "/people", icon: "group" },
         { name: "Messages", path: "/messages", icon: "chat" },
-        { name: "Notifications", path: "/Notification", icon: "favorite_border" },
+        { name: "Notifications", path: "/notification", icon: "favorite_border" },
         { name: "Create", path: "/create-post", icon: "add_circle_outline" },
-        { name: "Profile", path: "/profile", icon: null }, // Không dùng icon mặc định
+        { name: "Profile", path: "/profile", icon: null }, 
     ];
 
     return (
-        <div className="w-64 h-screen bg-gray-100 text-gray-800 p-4 flex flex-col">
+        <div className="w-61 h-screen bg-white-100 text-gray-800 p-4 flex flex-col border-r border-gray-200">
             {/* Logo */}
             <Link to="/" className="flex items-center space-x-2 mb-10 pl-3 group">
                 <img src="./src/assets/Logo.png" alt="StarSocial Logo" className="w-10 h-10 object-contain hover:scale-105 transition-all" />
-                <div className="text-2xl font-bold text-gray-800 group-hover:text-transparent group-hover:bg-clip-text group-hover:bg-gradient-to-r group-hover:from-blue-700 group-hover:to-blue-300">
+                <div className="text-2xl font-bold text-gray-800 group-hover:text-transparent group-hover:bg-clip-text group-hover:bg-gradient-to-r group-hover:from-blue-700 group-hover:to-blue-300 transition-all duration-[0500ms]">
                     StarSocial
                 </div>
             </Link>

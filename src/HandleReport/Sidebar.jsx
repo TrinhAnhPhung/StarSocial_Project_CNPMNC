@@ -53,9 +53,9 @@ const Sidebar = () => {
             <button className="flex items-center w-full px-4 py-2 hover:bg-gray-100 text-sm">
               <FiSettings className="mr-2" /> Settings
             </button>
-            <button className="flex items-center w-full px-4 py-2 hover:bg-gray-100 text-sm text-red-600">
-              <FiLogOut className="mr-2" /> Logout
-            </button>
+           <Link to="/login" className="flex items-center w-full px-4 py-2 hover:bg-gray-100 text-sm text-red-600">
+                         <FiLogOut className="mr-2" /> Logout
+                       </Link>
           </div>
         )}
       </div>
