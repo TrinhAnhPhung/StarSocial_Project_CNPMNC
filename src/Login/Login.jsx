@@ -40,44 +40,52 @@ const Login = () => {
   };
 
   const handleSubmit = async (e) => {
-  e.preventDefault();
-  const formErrors = validateForm();
-  if (Object.keys(formErrors).length > 0) {
-    setValidationErrors(formErrors);
-    return;
-  }
-
-  setLoading(true);
-  setError("");
-
-  try {
-    const response = await axios.post("http://localhost:5000/api/auth/login", formData);
-
-    // ✅ Lưu user và token
-    const { token, user } = response.data;
-    localStorage.setItem("token", token);
-    localStorage.setItem("user", JSON.stringify(user));
-
-    // ✅ Điều hướng theo role
-    if (user.role === "admin") {
-      navigate("/admin");
-    } else if (user.role === "handlereport") {
-      navigate("/processor");
-    } else {
-      navigate("/plashscreen");
+    e.preventDefault();
+    const formErrors = validateForm();
+    if (Object.keys(formErrors).length > 0) {
+      setValidationErrors(formErrors);
+      return;
     }
 
-  } catch (err) {
-    console.error("Login error:", err);
-    if (err.response?.data?.error) {
-      setError(err.response.data.error);
-    } else {
-      setError("Đã xảy ra lỗi, vui lòng thử lại.");
+    setLoading(true);
+    setError("");
+
+    try {
+      const response = await axios.post("http://localhost:5000/api/auth/login", formData);
+
+      // ✅ Kiểm tra phản hồi từ server
+      if (response.data && response.data.user && response.data.token) {
+        const { token, user } = response.data;
+
+        // ✅ Lưu user và token vào localStorage
+        localStorage.setItem("token", token);
+        localStorage.setItem("user", JSON.stringify(user));
+        localStorage.setItem("email", user.email);
+        localStorage.setItem("username", user.username);  // Lưu username vào localStorage
+
+        // ✅ Điều hướng theo role
+        if (user.role === "admin") {
+          navigate("/admin");
+        } else if (user.role === "handlereport") {
+          navigate("/processor");
+        } else {
+          navigate("/plashscreen");
+        }
+      } else {
+        setError("Thông tin đăng nhập không hợp lệ.");
+      }
+
+    } catch (err) {
+      console.error("Login error:", err);
+      if (err.response?.data?.error) {
+        setError(err.response.data.error);
+      } else {
+        setError("Đã xảy ra lỗi, vui lòng thử lại.");
+      }
+    } finally {
+      setLoading(false);
     }
-  } finally {
-    setLoading(false);
-  }
-};
+  };
 
   const handleLanguageChange = (e) => {
     setLanguage(e.target.value);

@@ -6,8 +6,8 @@ const Sidebar = () => {
     const [activeLink, setActiveLink] = useState(location.pathname);
     const [profilePic, setProfilePic] = useState(null);
 
-    // Giả sử username được lưu trong localStorage khi user login
-    const username = localStorage.getItem('username');
+    // Giả sử email được lưu trong localStorage khi user login
+    const email = localStorage.getItem('email');
 
     // Fetch profile data từ API
     useEffect(() => {
@@ -15,15 +15,18 @@ const Sidebar = () => {
     }, [location.pathname]);
 
     useEffect(() => {
-        if (username) {
-            fetch(`http://localhost:5000/api/profile/${username}`)
+        if (email) {
+            fetch(`http://localhost:5000/api/profile?email=${email}`)
                 .then(res => res.json())
                 .then(data => {
-                    setProfilePic(data.profile_picture_url);
+                    setProfilePic(data.profile_picture_url || '/default-avatar.png'); // Avatar mặc định
                 })
-                .catch(err => console.error('Error fetching profile:', err));
+                .catch(err => {
+                    console.error('Error fetching profile:', err);
+                    setProfilePic('/default-avatar.png'); // Avatar mặc định nếu có lỗi
+                });
         }
-    }, [username]);
+    }, [email]);
 
     const menuItems = [
         { name: "Home", path: "/", icon: "home" },
@@ -32,7 +35,7 @@ const Sidebar = () => {
         { name: "Messages", path: "/messages", icon: "chat" },
         { name: "Notifications", path: "/notification", icon: "favorite_border" },
         { name: "Create", path: "/create-post", icon: "add_circle_outline" },
-        { name: "Profile", path: "/profile", icon: null }, 
+        { name: "Profile", path: "/profile", icon: null },
     ];
 
     return (
