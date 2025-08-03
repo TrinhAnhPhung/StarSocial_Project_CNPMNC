@@ -13,6 +13,7 @@ import path from 'path';
 
 
 
+
 const storage = multer.diskStorage({
   destination: function (req, file, cb) {
     cb(null, 'uploads/'); // Thư mục lưu file
@@ -39,6 +40,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/role', roleRoutes);
 app.use('/api/users', peopleRoutes);
 app.use('/api/users/suggestions', suggestionRoutes);
+app.use('/api/users', peopleRoutes);
 
 app.listen(port, () => {
   console.log(`✅ Server chạy tại http://localhost:${port}`);
