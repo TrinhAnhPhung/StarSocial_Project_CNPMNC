@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
+import { FiSearch } from 'react-icons/fi'; // Import icon tìm kiếm
 
 const People = () => {
     const [users, setUsers] = useState([]);
@@ -21,11 +22,12 @@ const People = () => {
                     name: user.full_name,
                     username: user.username,
                     avatar: user.profile_picture_url,
-                    isFollowing: false
+                    isFollowing: false // Trạng thái follow mặc định
                 }));
                 setUsers(formattedUsers);
             } catch  {
-                setError("Could not load users.");
+                // Gán lỗi vào state để hiển thị
+                setError("Could not load users. Please try again later.");
             } finally {
                 setLoading(false);
             }
@@ -34,6 +36,8 @@ const People = () => {
     }, []);
 
     const handleFollowToggle = (userId) => {
+        // Tạm thời chỉ thay đổi state ở client
+        // Trong thực tế, bạn sẽ gọi API để cập nhật trạng thái follow ở đây
         setUsers(prevUsers =>
             prevUsers.map(user =>
                 user.id === userId ? { ...user, isFollowing: !user.isFollowing } : user
@@ -46,42 +50,71 @@ const People = () => {
         (user.username && user.username.toLowerCase().includes(searchTerm.toLowerCase()))
     );
 
-    if (loading) return <div className="text-center p-10">Loading users...</div>;
-    if (error) return <div className="text-center p-10 text-red-500">{error}</div>;
+    // Giao diện Loading với spinner
+    if (loading) {
+        return (
+            <div className="flex justify-center items-center min-h-screen">
+                <div className="w-16 h-16 border-4 border-blue-500 border-solid rounded-full animate-spin border-t-transparent"></div>
+            </div>
+        );
+    }
+    
+    if (error) {
+         return <div className="text-center p-10 text-red-500">{error}</div>;
+    }
 
     return (
-        <div className="bg-gray-50 text-gray-900 min-h-screen p-6">
-            <h1 className="text-2xl font-semibold mb-6">All Users</h1>
+        <div className="bg-gray-50 text-gray-900 min-h-screen p-6 font-sans">
+            <h1 className="text-3xl font-bold mb-6 text-gray-800">Explore People</h1>
+            
+            {/* Thanh tìm kiếm với Icon */}
             <div className="mb-8 relative">
+                <FiSearch className="absolute top-1/2 left-4 transform -translate-y-1/2 text-gray-400" size={20} />
                 <input
                     type="text"
-                    placeholder="Search users by name or username..."
-                    className="w-full pl-10 pr-4 py-2 border rounded-lg"
+                    placeholder="Search by name or username..."
+                    className="w-full pl-12 pr-4 py-3 border rounded-full bg-white shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 transition-shadow"
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
                 />
             </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 cursor-pointer">
                 {filteredUsers.map((user) => (
-                    <div key={user.id} className="bg-white rounded-lg p-4 flex flex-col items-center text-center border shadow-md">
-                        <Link to={`/profile/${user.username}`} className="flex flex-col items-center flex-grow mb-4">
+                    // Card User với hiệu ứng
+                    <div 
+                        key={user.id} 
+                        className="bg-white rounded-lg p-5 flex flex-col items-center text-center border shadow-md transition-transform duration-300 ease-in-out hover:shadow-xl hover:-translate-y-2"
+                    >
+                        <Link to={`/profile/${user.username}`} className="flex flex-col items-center flex-grow mb-4 w-full cursor-pointer">
                             <img
-                                src={user.avatar || 'https://via.placeholder.com/200'}
+                                src={user.avatar || `https://ui-avatars.com/api/?name=${user.name}&background=random`}
                                 alt={`${user.name}'s Avatar`}
-                                className="w-20 h-20 rounded-full object-cover mb-3"
+                                className="w-24 h-24 rounded-full object-cover mb-4 border-2 border-gray-200"
                             />
-                            <h2 className="text-lg font-semibold">{user.name || 'Unnamed User'}</h2>
+                            <h2 className="text-lg font-semibold text-gray-800">{user.name || 'Unnamed User'}</h2>
                             <p className="text-gray-500 text-sm">@{user.username}</p>
                         </Link>
                         <button
                             onClick={() => handleFollowToggle(user.id)}
-                            className={`w-full py-2 px-4 rounded-lg font-medium ${user.isFollowing ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-800'}`}
+                            className={`cursor-pointer w-full py-2 px-4 rounded-full font-semibold text-sm transition-all duration-300 ease-in-out focus:outline-none focus:ring-2 focus:ring-offset-2
+                                ${user.isFollowing 
+                                    ? 'bg-blue-600 text-white hover:bg-blue-700 focus:ring-blue-500' 
+                                    : 'bg-gray-200 text-gray-800 hover:bg-gray-300 focus:ring-gray-400'
+                                }`}
                         >
                             {user.isFollowing ? 'Following' : 'Follow'}
                         </button>
                     </div>
                 ))}
             </div>
+            
+            {/* Thông báo khi không có kết quả tìm kiếm */}
+            {filteredUsers.length === 0 && !loading && (
+                <div className="text-center col-span-full py-10">
+                    <p className="text-gray-500 text-lg">No users found matching your search.</p>
+                </div>
+            )}
         </div>
     );
 };
