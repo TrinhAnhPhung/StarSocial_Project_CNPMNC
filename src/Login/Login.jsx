@@ -62,6 +62,9 @@ const Login = () => {
         localStorage.setItem("user", JSON.stringify(user));
         localStorage.setItem("email", user.email);
         localStorage.setItem("username", user.username);  // Lưu username vào localStorage
+         localStorage.setItem("id", user.id);
+        
+
 
         // ✅ Điều hướng theo role
         if (user.role === "admin") {

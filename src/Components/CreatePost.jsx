@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 
-const CreatePost = ({ userId }) => {
+const CreatePost = () => {
     const [isDragging, setIsDragging] = useState(false);
     const [selectedFile, setSelectedFile] = useState(null);
     const [postContent, setPostContent] = useState("");
@@ -11,6 +11,8 @@ const CreatePost = ({ userId }) => {
     const [isReadyToShare, setIsReadyToShare] = useState(false);
     const [preview, setPreview] = useState(null);
     const navigate = useNavigate();
+
+    
 
     // Handle drag events
     const handleDragEnter = (e) => {
@@ -71,8 +73,16 @@ const CreatePost = ({ userId }) => {
             return;
         }
 
+         const currentUserId = localStorage.getItem("id");
+
+          if (!currentUserId) {
+            alert("Bạn chưa đăng nhập. Vui lòng đăng nhập để đăng bài.");
+            navigate('/login'); // Chuyển hướng về trang đăng nhập
+            return;
+        }
+
         const formData = new FormData();
-        formData.append("user_id", userId || 1);
+         formData.append("user_id", currentUserId);
         formData.append("caption", postContent);
         formData.append("location", location);
         formData.append("hashtags", hashtags);

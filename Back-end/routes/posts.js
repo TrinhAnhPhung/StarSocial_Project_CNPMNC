@@ -3,6 +3,7 @@ import express from 'express';
 import multer from 'multer';
 import path from 'path';
 import pool from '../db.js'; 
+import { toggleLike, addComment } from '../controllers/postController.js';
 
 const router = express.Router();
 
@@ -15,6 +16,10 @@ const storage = multer.diskStorage({
         cb(null, Date.now() + path.extname(file.originalname)); // Tên file duy nhất
     }
 });
+
+
+
+
 
 // Hàm kiểm tra loại file và kích thước file
 const fileFilter = (req, file, cb) => {
@@ -41,7 +46,7 @@ const upload = multer({
     limits: limits
 });
 
-// Endpoint để tạo bài viết mới
+
 router.post('/', upload.single('image'), async (req, res) => {
     // Kiểm tra các thông tin gửi lên
     console.log(req.body);  // Kiểm tra dữ liệu gửi từ frontend
@@ -68,25 +73,37 @@ router.post('/', upload.single('image'), async (req, res) => {
 });
 
 
+
+
+// 3. THÍCH / BỎ THÍCH một bài viết (Đã thêm)
+// Route này khớp với: POST /api/posts/:postId/like
+router.post('/:postId/like', toggleLike);
+
+
+// 4. THÊM BÌNH LUẬN vào một bài viết (Đã thêm)
+// Route này khớp với: POST /api/posts/:postId/comments
+router.post('/:postId/comments', addComment);
+
+
 // Endpoint để lấy tất cả bài viết
 router.get('/', async (req, res) => {
     try {
         // Truy vấn cơ sở dữ liệu PostgreSQL để lấy danh sách bài viết
         const result = await pool.query(
             `SELECT 
-                posts.id, 
-                posts.user_id, 
-                posts.image_url, 
-                posts.caption, 
-                posts.location, 
-                posts.hashtags, 
-                posts.created_at, 
-                users1.username, 
-                users1.full_name,  -- Đảm bảo truy vấn cột full_name
-                users1.profile_picture_url
-            FROM posts
-            JOIN users1 ON posts.user_id = users1.id
-            ORDER BY posts.created_at DESC`
+          posts.id, 
+          posts.user_id, 
+          posts.image_url, 
+          posts.caption, 
+          posts.location, 
+          posts.hashtags, 
+          posts.created_at, 
+          users1.username,  -- Truy vấn username từ users1
+          users1.full_name, -- Truy vấn full_name từ users1
+          users1.profile_picture_url  -- Truy vấn profile_picture_url từ users1
+      FROM posts
+      JOIN users1 ON posts.user_id = users1.id
+      ORDER BY posts.created_at DESC`
         );
 
         // Trả về dữ liệu bài viết

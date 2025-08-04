@@ -50,6 +50,7 @@ export const loginUser = async (req, res) => {
       message: 'Đăng nhập thành công',
       token,
       user: {
+        id: user.id,
         username: user.username,
         email: user.email,
         full_name: user.full_name,

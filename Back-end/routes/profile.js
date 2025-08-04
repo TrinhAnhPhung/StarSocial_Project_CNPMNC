@@ -3,10 +3,10 @@ import pool from '../db.js'; // ✅ Sử dụng pool kết nối chung
 
 const router = express.Router();
 
-
 router.get('/:username', async (req, res) => {
     try {
-         // ✅ Lấy username từ URL params
+        // ✅ Lấy username từ URL params
+        const { username } = req.params;  // Đảm bảo bạn lấy username từ req.params
 
         // ✅ Truy vấn CSDL bằng username
         const userResult = await pool.query(
