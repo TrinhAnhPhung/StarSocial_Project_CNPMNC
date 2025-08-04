@@ -8,10 +8,7 @@ import peopleRoutes from './routes/people.js';
 import suggestionRoutes from './routes/suggestions.js';
 import multer from 'multer';
 import path from 'path';
-
-
-
-
+import postRoutes from './routes/posts.js';
 
 
 const storage = multer.diskStorage({
@@ -41,7 +38,7 @@ app.use('/api/role', roleRoutes);
 app.use('/api/users', peopleRoutes);
 app.use('/api/users/suggestions', suggestionRoutes);
 app.use('/api/users', peopleRoutes);
-
+app.use('/api/posts', postRoutes);
 app.listen(port, () => {
   console.log(`✅ Server chạy tại http://localhost:${port}`);
 });

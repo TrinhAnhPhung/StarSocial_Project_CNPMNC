@@ -1,13 +1,18 @@
 import React, { useState } from 'react';
 import axios from 'axios';
+import { useNavigate } from 'react-router-dom';
 
 const CreatePost = ({ userId }) => {
     const [isDragging, setIsDragging] = useState(false);
     const [selectedFile, setSelectedFile] = useState(null);
     const [postContent, setPostContent] = useState("");
     const [location, setLocation] = useState("");
+    const [hashtags, setHashtags] = useState("");
     const [isReadyToShare, setIsReadyToShare] = useState(false);
+    const [preview, setPreview] = useState(null);
+    const navigate = useNavigate();
 
+    // Handle drag events
     const handleDragEnter = (e) => {
         e.preventDefault();
         e.stopPropagation();
@@ -37,6 +42,7 @@ const CreatePost = ({ userId }) => {
             const file = e.dataTransfer.files[0];
             if (file.type.startsWith('image/')) {
                 setSelectedFile(file);
+                setPreview(URL.createObjectURL(file));
                 setIsReadyToShare(true);
             } else {
                 alert("Please drop an image file.");
@@ -44,11 +50,13 @@ const CreatePost = ({ userId }) => {
         }
     };
 
+    // Handle file change (select image manually)
     const handleFileChange = (e) => {
         if (e.target.files && e.target.files.length > 0) {
             const file = e.target.files[0];
             if (file.type.startsWith('image/')) {
                 setSelectedFile(file);
+                setPreview(URL.createObjectURL(file));
                 setIsReadyToShare(true);
             } else {
                 alert("Please select an image file.");
@@ -56,64 +64,66 @@ const CreatePost = ({ userId }) => {
         }
     };
 
-    const handleButtonClick = () => {
-        document.getElementById('file-upload-input').click();
-    };
-
+    // Handle share post (submit post)
     const handleSharePost = async () => {
         if (!selectedFile) {
             alert("Please select an image.");
             return;
         }
 
-        try {
-            const formData = new FormData();
-            formData.append("user_id", userId || 1); // Default user_id = 1 for now
-            formData.append("caption", postContent);
-            formData.append("location", location);
-            formData.append("image", selectedFile);
+        const formData = new FormData();
+        formData.append("user_id", userId || 1);
+        formData.append("caption", postContent);
+        formData.append("location", location);
+        formData.append("hashtags", hashtags);
+        formData.append("image", selectedFile);
 
+        try {
             const res = await axios.post("http://localhost:5000/api/posts", formData, {
                 headers: {
                     "Content-Type": "multipart/form-data",
                 },
             });
 
+            console.log("Post created:", res.data);
             alert("Post shared successfully!");
-            console.log("Post response:", res.data);
-
-            // Reset state after successful post
             setSelectedFile(null);
             setPostContent("");
             setLocation("");
+            setHashtags("");
             setIsReadyToShare(false);
+            navigate("/");  // Redirect to homepage after success
         } catch (err) {
             console.error("Error sharing post:", err);
             alert("An error occurred while sharing the post!");
         }
     };
 
+    // Handle image drag-and-drop interaction
+    const handleButtonClick = () => {
+        document.getElementById('file-upload-input').click();
+    };
+
     return (
         <div className="bg-gray-200 min-h-screen flex items-center justify-center p-4">
             <div className="bg-white rounded-lg shadow-xl w-full max-w-md mx-auto overflow-hidden">
-
                 {isReadyToShare ? (
                     <>
                         {/* Header */}
                         <div className="bg-gray-300 text-gray-700 py-3 text-center text-lg font-semibold border-b border-gray-400 flex justify-between items-center px-4">
                             <button
-  onClick={() => {
-    setIsReadyToShare(false);
-    setSelectedFile(null);
-  }}
-  className="text-blue-600 hover:underline font-normal text-base cursor-pointer"
->
-  <span className="material-icons text-3xl hover:text-blue-700">arrow_back</span>
-</button>
+                                onClick={() => {
+                                    setIsReadyToShare(false);
+                                    setSelectedFile(null);
+                                }}
+                                className="text-blue-600 hover:underline font-normal text-base cursor-pointer"
+                            >
+                                <span className="material-icons text-3xl hover:text-blue-700">arrow_back</span>
+                            </button>
 
                             <p>Create new post</p>
                             <button
-                                onClick={handleSharePost}
+                                onClick={handleSharePost}  // Ensure this calls handleSharePost
                                 className="bg-blue-600 text-white px-4 py-1 rounded-lg hover:bg-blue-700 cursor-pointer"
                             >
                                 Share
@@ -124,7 +134,7 @@ const CreatePost = ({ userId }) => {
                         <div className="p-4 flex flex-col gap-4">
                             {selectedFile && (
                                 <img
-                                    src={URL.createObjectURL(selectedFile)}
+                                    src={preview}
                                     alt="Selected preview"
                                     className="rounded-lg max-h-[200px] object-contain"
                                 />
@@ -145,6 +155,14 @@ const CreatePost = ({ userId }) => {
                                 placeholder="Add location..."
                                 className="w-full border border-gray-300 rounded-lg p-2"
                             />
+
+                            <input
+                                type="text"
+                                value={hashtags}
+                                onChange={(e) => setHashtags(e.target.value)}
+                                placeholder="#react #js #programming"
+                                className="w-full border border-gray-300 rounded-lg p-2"
+                            />
                         </div>
                     </>
                 ) : (
@@ -156,12 +174,10 @@ const CreatePost = ({ userId }) => {
 
                         {/* Drag and Drop or Select Image */}
                         <div
-                            className={`
-                                flex flex-col items-center justify-center p-8 text-center
+                            className={`flex flex-col items-center justify-center p-8 text-center
                                 ${isDragging ? 'bg-blue-100 border-blue-400' : 'bg-gray-50 border-gray-300'}
                                 border-2 border-dashed rounded-b-lg min-h-[300px]
-                                transition-colors duration-200 ease-in-out
-                            `}
+                                transition-colors duration-200 ease-in-out`}
                             onDragEnter={handleDragEnter}
                             onDragLeave={handleDragLeave}
                             onDragOver={handleDragOver}
