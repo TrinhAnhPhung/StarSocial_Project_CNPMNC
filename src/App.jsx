@@ -12,6 +12,7 @@ import CreatePost from './Components/CreatePost';
 import Profile from './Components/Profile';
 import Editprofile from './Components/Editprofile';
 import Notification from './Components/notification';
+import EditPostPage from './Components/EditPostPage';
 
 // Auth Components
 import Login from './Login/Login';
@@ -68,6 +69,7 @@ const App = () => {
         <Route path="/people" element={<People />} />
         <Route path="/saved" element={<Saved />} />
         <Route path="/create-post" element={<CreatePost />} />
+        <Route path="/edit-post/:postId" element={<EditPostPage />} />
       </Route>
     </Routes>
   );

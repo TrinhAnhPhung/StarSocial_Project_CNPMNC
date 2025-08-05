@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+// AdminPage.jsx
+import React, { useState, useMemo } from 'react';
 import {
   FiSearch, FiPlus, FiEdit, FiTrash2, FiMoreHorizontal,
   FiChevronDown, FiLogOut, FiSettings
@@ -8,17 +9,17 @@ import { Link } from 'react-router-dom';
 import AddUserModal from '../Components/AddUserModal';
 import { AnimatePresence } from 'framer-motion';
 
-// Dữ liệu người dùng ban đầu
+// Initial dummy user data to match PostgreSQL structure
 const initialUsers = [
-  { email: 'john.smith@gmail.com', status: 'Active', role: 'Admin', joinedDate: 'March 12, 2023', password: 'password123' },
-  { email: 'dwarren3@gmail.com', status: 'Banned', role: 'User', joinedDate: 'January 8, 2024', password: 'password123' },
-  { email: 'belleclark@gmail.com', status: 'Active', role: 'Handle Report', joinedDate: 'August 30, 2022', password: 'password123' },
-  { email: 'lucamich@gmail.com', status: 'Active', role: 'User', joinedDate: 'April 23, 2024', password: 'password123' },
-  { email: 'markwill32@gmail.com', status: 'Banned', role: 'User', joinedDate: 'November 14, 2020', password: 'password123' },
-  { email: 'noemivill99@gmail.com', status: 'Active', role: 'Admin', joinedDate: 'August 10, 2024', password: 'password123' },
+  { email: 'john.smith@gmail.com', full_name: 'John Smith', status: 'Active', role: 'Admin', joined_date: '2025-03-12' },
+  { email: 'dwarren3@gmail.com', full_name: 'David Warren', status: 'Banned', role: 'User', joined_date: '2025-01-08' },
+  { email: 'belleclark@gmail.com', full_name: 'Belle Clark', status: 'Active', role: 'Handle Report', joined_date: '2025-08-30' },
+  { email: 'lucamich@gmail.com', full_name: 'Luca Mich', status: 'Active', role: 'User', joined_date: '2025-04-23' },
+  { email: 'markwill32@gmail.com', full_name: 'Mark Williams', status: 'Banned', role: 'User', joined_date: '2025-01-14' },
+  { email: 'noemivill99@gmail.com', full_name: 'Noemi Villas', status: 'Active', role: 'Admin', joined_date: '2025-08-10' },
 ];
 
-// --- Các Component con ---
+// --- Sub-Components ---
 
 const StatusBadge = ({ status }) => {
   const baseClasses = "px-3 py-1 text-sm rounded-full font-semibold";
@@ -90,6 +91,36 @@ const Header = ({ searchTerm, setSearchTerm, onOpenModal }) => {
   );
 };
 
+const MonthlyStats = ({ users }) => {
+  const monthlyData = useMemo(() => {
+    const stats = {};
+    users.forEach(user => {
+      const date = new Date(user.joined_date);
+      const month = date.toLocaleString('en-us', { month: 'long' });
+      const year = date.getFullYear();
+      const key = `${month} ${year}`;
+      stats[key] = (stats[key] || 0) + 1;
+    });
+    return stats;
+  }, [users]);
+
+  return (
+    <div className="p-6">
+      <h3 className="text-xl font-bold text-gray-800 mb-4">Monthly User Statistics (2025)</h3>
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        {Object.entries(monthlyData).map(([month, count]) => (
+          <div key={month} className="bg-blue-50 border border-blue-200 p-4 rounded-lg shadow-sm">
+            <p className="text-sm text-gray-600">{month}</p>
+            <p className="text-2xl font-bold text-blue-700">{count}</p>
+            <p className="text-sm text-gray-500">new users</p>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+};
+
+
 const UserTable = ({ users, searchTerm, onEdit, onDelete }) => {
   const filteredUsers = users.filter(user =>
     user.email.toLowerCase().includes(searchTerm.toLowerCase())
@@ -113,7 +144,11 @@ const UserTable = ({ users, searchTerm, onEdit, onDelete }) => {
               <td className="p-4 font-medium text-gray-800">{user.email}</td>
               <td className="p-4"><StatusBadge status={user.status} /></td>
               <td className="p-4 text-gray-600">{user.role}</td>
-              <td className="p-4 text-gray-600">{user.joinedDate}</td>
+              <td className="p-4 text-gray-600">{new Date(user.joined_date).toLocaleDateString('en-US', {
+                month: 'long',
+                day: 'numeric',
+                year: 'numeric',
+              })}</td>
               <td className="p-4 text-center">
                 <button onClick={() => onEdit(user)} className="text-gray-500 hover:text-blue-600 mr-4"><FiEdit size={18} /></button>
                 <button onClick={() => onDelete(user.email)} className="text-gray-500 hover:text-red-600"><FiTrash2 size={18} /></button>
@@ -127,7 +162,7 @@ const UserTable = ({ users, searchTerm, onEdit, onDelete }) => {
 };
 
 
-// --- Component chính: AdminPage ---
+// --- Main Component: AdminPage ---
 
 const AdminPage = () => {
   const [searchTerm, setSearchTerm] = useState('');
@@ -135,50 +170,39 @@ const AdminPage = () => {
   const [users, setUsers] = useState(initialUsers);
   const [editingUser, setEditingUser] = useState(null);
 
-  // Mở modal để thêm user mới
   const handleOpenAddModal = () => {
     setEditingUser(null);
     setModalOpen(true);
   };
 
-  // Mở modal để sửa user
   const handleOpenEditModal = (user) => {
     setEditingUser(user);
     setModalOpen(true);
   };
   
-  // Hàm xóa user
   const handleDeleteUser = (emailToDelete) => {
     if (window.confirm(`Are you sure you want to delete user: ${emailToDelete}?`)) {
       setUsers(users.filter(user => user.email !== emailToDelete));
     }
   };
 
-  // Hàm xử lý Thêm và Sửa user
   const handleSaveUser = (userData) => {
-    // Logic SỬA
     if (editingUser) {
       setUsers(users.map(user => {
         if (user.email === editingUser.email) {
-          // Chỉ cập nhật mật khẩu nếu người dùng nhập mật khẩu mới
           const newPassword = userData.password ? userData.password : user.password;
           return { ...user, ...userData, password: newPassword };
         }
         return user;
       }));
     } else {
-      // Logic THÊM
       const newUser = {
         ...userData,
-        joinedDate: new Date().toLocaleDateString('en-US', {
-          month: 'long',
-          day: 'numeric',
-          year: 'numeric',
-        }),
+        joined_date: new Date().toISOString().slice(0, 10),
+        status: 'Active'
       };
       setUsers(prevUsers => [newUser, ...prevUsers]);
     }
-    // Đóng modal và reset trạng thái
     setModalOpen(false);
     setEditingUser(null);
   };
@@ -189,6 +213,7 @@ const AdminPage = () => {
       <main className="ml-64 flex-1 flex flex-col">
         <div className="m-6 bg-white rounded-lg shadow">
           <Header searchTerm={searchTerm} setSearchTerm={setSearchTerm} onOpenModal={handleOpenAddModal} />
+          <MonthlyStats users={users} />
           <UserTable 
             searchTerm={searchTerm} 
             users={users} 

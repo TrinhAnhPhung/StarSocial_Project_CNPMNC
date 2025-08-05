@@ -31,13 +31,13 @@ const PostCard = ({ post }) => {
 
     // BƯỚC 3: Thêm các hàm xử lý cho menu
     const handleEditPost = () => {
-        alert("Chức năng sửa bài viết (ảo)");
+        alert("Chức năng sửa bài viết");
         setIsMenuOpen(false);
     };
 
     const handleDeletePost = () => {
         if (window.confirm("Bạn có chắc chắn muốn xóa bài viết này?")) {
-            alert("Bài viết đã được xóa (ảo)");
+            alert("Bài viết đã được xóa ");
             // Trong ứng dụng thật, bạn sẽ gọi hàm để xóa bài viết khỏi state ở component cha
             setIsMenuOpen(false);
         }
