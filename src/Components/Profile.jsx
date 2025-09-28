@@ -12,8 +12,8 @@ const userPosts = [
 
 // Dữ liệu cho các bài viết người dùng đã thích
 const likedPosts = [
-    { id: 101, imageUrl: 'https://i.pinimg.com/1200x/33/a5/61/33a5614b3b437ae9c4a4aaf7a110de3b.jpg', likes: 987 },
-    { id: 102, imageUrl: 'https://i.pinimg.com/1200x/17/59/ee/1759eebc6d98608a77a51acc983d45d2.jpg', likes: 1204 },
+  { id: 101, imageUrl: 'https://i.pinimg.com/1200x/33/a5/61/33a5614b3b437ae9c4a4aaf7a110de3b.jpg', likes: 987 },
+  { id: 102, imageUrl: 'https://i.pinimg.com/1200x/17/59/ee/1759eebc6d98608a77a51acc983d45d2.jpg', likes: 1204 },
 ]
 
 
@@ -25,6 +25,28 @@ const Profile = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [activeTab, setActiveTab] = useState('posts');
+
+  const [lovedPostState, setlovedPostState] = useState({});
+
+  const toggleLoved = (post) => {
+    setlovedPostState((prev) => {
+      const isCurrentlyLoved = !!prev[post.id];
+      const newState = {
+        ...prev,
+        [post.id]: !isCurrentlyLoved,
+      };
+
+      if (isCurrentlyLoved) {
+        alert('Đã bỏ thích bài viết');
+        post.likes -= 0.5;
+      } else {
+        alert('Đã thích bài viết');
+        post.likes += 0.5;
+      }
+
+      return newState;
+    });
+  };
 
   useEffect(() => {
     const email = localStorage.getItem("email"); // Lấy email người dùng từ localStorage
@@ -89,6 +111,9 @@ const Profile = () => {
     return <div className="text-red-500 flex justify-center items-center h-screen">{error || 'Không thể tải hồ sơ người dùng.'}</div>;
   }
 
+  function changeLikedColor(value) {
+    return (`absolute inset-0 bg-black bg-opacity-40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-default  ${value ? 'color : pink' : ' '}`)
+  }
   return (
     <div className="bg-white text-gray-800 min-h-screen p-6">
       {/* Header Profile */}
@@ -131,18 +156,16 @@ const Profile = () => {
       <div className="border-b border-gray-200 mb-6">
         <nav className="flex space-x-8">
           <button
-            className={`flex items-center space-x-2 py-3 px-1 border-b-2 ${
-              activeTab === 'posts' ? 'border-blue-500 text-blue-500' : 'border-transparent text-gray-500 hover:text-gray-800'
-            } transition-colors font-medium`}
+            className={`flex items-center space-x-2 py-3 px-1 border-b-2 ${activeTab === 'posts' ? 'border-blue-500 text-blue-500' : 'border-transparent text-gray-500 hover:text-gray-800'
+              } transition-colors font-medium`}
             onClick={() => setActiveTab('posts')}
           >
             <span className="material-icons">dashboard</span>
             <span>Posts</span>
           </button>
           <button
-            className={`flex items-center space-x-2 py-3 px-1 border-b-2 ${
-              activeTab === 'liked' ? 'border-blue-500 text-blue-500' : 'border-transparent text-gray-500 hover:text-gray-800'
-            } transition-colors font-medium`}
+            className={`flex items-center space-x-2 py-3 px-1 border-b-2 ${activeTab === 'liked' ? 'border-blue-500 text-blue-500' : 'border-transparent text-gray-500 hover:text-gray-800'
+              } transition-colors font-medium`}
             onClick={() => setActiveTab('liked')}
           >
             <span className="material-icons">favorite_border</span>
@@ -153,37 +176,53 @@ const Profile = () => {
 
       {/* Content based on active tab */}
       {activeTab === 'posts' ? (
-        // --- THAY ĐỔI: Lặp qua mảng userPosts để hiển thị các bài viết ---
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {userPosts.map((post) => (
-            <div key={post.id} className="bg-white border border-gray-200 rounded-lg overflow-hidden relative group">
-              <img src={post.imageUrl} alt={`Post ${post.id}`} className="w-full h-60 object-cover" />
-              <div className="absolute inset-0 bg-black bg-opacity-40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                <div className="flex items-center text-white text-lg">
-                  {/* --- THAY ĐỔI: Hiển thị số like từ dữ liệu của post --- */}
-                  <span className="material-icons text-xl mr-1">favorite</span> {post.likes}
+          {userPosts.map((post) => {
+            const isLoved = lovedPostState[post.id] || false;
+            return (
+              <div key={post.id} className="bg-white border border-gray-200 rounded-lg overflow-hidden relative group">
+                <img src={post.imageUrl} alt={`Post ${post.id}`} className="w-full h-60 object-cover" />
+                <div className="absolute inset-0 bg-black bg-opacity-40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-default">
+                  <div className="flex items-center text-white text-lg">
+                    <span
+                      className={`material-icons text-xl mr-1 cursor-pointer ${isLoved ? "text-red-600" : "text-white hover:text-red-600"}`}
+                      onClick={() => toggleLoved(post)}
+                    >
+                      favorite
+                    </span>
+                    {post.likes}
+                  </div>
                 </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       ) : (
         // --- THAY ĐỔI: Hiển thị các bài viết đã thích ---
         likedPosts.length > 0 ? (
-             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {likedPosts.map((post) => (
-                    <div key={post.id} className="bg-white border border-gray-200 rounded-lg overflow-hidden relative group">
-                    <img src={post.imageUrl} alt={`Liked Post ${post.id}`} className="w-full h-60 object-cover" />
-                    <div className="absolute inset-0 bg-black bg-opacity-40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                        <div className="flex items-center text-white text-lg">
-                        <span className="material-icons text-xl mr-1">favorite</span> {post.likes}
-                        </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {likedPosts.map((post) => {
+              const isLoved = lovedPostState[post.id] || false;
+              return (
+                <div key={post.id} className="bg-white border border-gray-200 rounded-lg overflow-hidden relative group">
+                  <img src={post.imageUrl} alt={`Liked Post ${post.id}`} className="w-full h-60 object-cover" />
+                  <div className="absolute inset-0 bg-black bg-opacity-40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-default">
+                    <div className="flex items-center text-white text-lg">
+                      <span
+                        className={`material-icons text-xl mr-1 cursor-pointer ${isLoved ? "text-red-600" : "text-white hover:text-red-600"}`}
+                        onClick={() => toggleLoved(post)}
+                      >
+                        favorite
+                      </span>
+                      {post.likes}
                     </div>
-                    </div>
-                ))}
-            </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
         ) : (
-             <div className="text-center text-gray-500 py-10">Chưa có bài viết đã thích.</div>
+          <div className="text-center text-gray-500 py-10">Chưa có bài viết đã thích.</div>
         )
       )}
     </div>
