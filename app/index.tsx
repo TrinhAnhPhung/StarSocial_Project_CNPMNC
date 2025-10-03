@@ -5,8 +5,11 @@ import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import SplashScreen from "./SplashScreen";
 import Page from "./Login";
 import { COLORS } from "../constants/color";
+import Register from "./Register";
+import ForgotPassword from "./ForgotPassword";
 
 import { ThemeBar } from "../component/themeBar";
+import { SafeAreaView } from "react-native-safe-area-context";
 const Stack = createNativeStackNavigator();
 
 export default function App() {
@@ -27,26 +30,35 @@ export default function App() {
     }, []);
     if (showFlashScreen) {
         return (
-            <>
+            <><SafeAreaView style={{ flex: 1, backgroundColor: theme.background_color }}>
                 <ThemeBar />
-                {/* Các component khác */  <Animated.View style={[styles.container, { opacity: fadeAnim }, { backgroundColor: theme.backgroundColor }]}>
+                {/* Các component khác */}
+                <Animated.View style={[styles.container, { opacity: fadeAnim }, { backgroundColor: theme.background_color }]}>
                     <Image source={require('../assets/logo.png')} style={{ width: 200, height: 200 }} />
-                </Animated.View>}
-
+                </Animated.View>
+            </SafeAreaView>
             </>
 
         );
     }
     return (<>
-        <ThemeBar />{
-            <View style={[styles.container, { backgroundColor: theme.backgroundColor }]}>
-                <Text style={{ color: theme.Text_color }}>Login screen sẽ nằm ở file khác, ví dụ `app/login.tsx` dday la </Text>
-            </View >
-        }</>
-        // <Stack.Navigator id={undefined} screenOptions={{ headerShown: false }}>
+        <SafeAreaView style={{ flex: 1, backgroundColor: theme.background_color }}>
+            <ThemeBar />
+            {
+                // <View style={[styles.container, { backgroundColor: theme.backgroundColor }]}>
+                //     <Text style={{ color: theme.Text_color }}>Login screen sẽ nằm ở file khác, ví dụ `app/login.tsx` dday la </Text>
+                // </View >
+            }
+            <Stack.Navigator id={undefined} screenOptions={{ headerShown: false }}>
 
-        //     <Stack.Screen name="Login" component={Page} />
-        // </Stack.Navigator>
+                <Stack.Screen name="Login" component={Page} />
+                <Stack.Screen name="Register" component={Register} />
+                <Stack.Screen name="ForgotPassword" component={ForgotPassword} />
+            </Stack.Navigator>
+
+        </SafeAreaView>
+    </>
+
 
     );
 }
