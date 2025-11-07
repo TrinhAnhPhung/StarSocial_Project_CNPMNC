@@ -258,7 +258,7 @@ const Explore = () => {
                 alt={img.alt}
                 className="object-cover w-full h-64 transition-transform duration-300 group-hover:scale-105"
               />
-              <div className="absolute inset-0 bg-black bg-opacity-40 opacity-0 group-hover:opacity-100 transition-opacity flex justify-center items-center">
+              <div className="absolute inset-0 bg-gray-900/50 backdrop-blur-sm opacity-0 group-hover:opacity-100 transition-opacity flex justify-center items-center">
                 <div className="flex gap-6 text-white text-sm font-semibold">
                   <div className="flex items-center gap-1">
                     <FaHeart />

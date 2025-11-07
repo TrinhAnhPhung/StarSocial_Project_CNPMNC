@@ -1,8 +1,8 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
 import translations from "./Language/LoginLanguage.jsx";
-
+import ReCAPTCHA from "react-google-recaptcha";
 const Login = () => {
   const [formData, setFormData] = useState({ email: "", password: "" });
   const [loading, setLoading] = useState(false);
@@ -11,9 +11,17 @@ const Login = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [language, setLanguage] = useState("vi");
   const navigate = useNavigate();
-
+  const siteKey = import.meta.env.VITE_Recapcha_site_key;
   const t = translations[language];
-
+  const [isVerrified, setIsVerrified] = useState(false);
+  const backendLink = import.meta.env.VITE_Link_backend || "http://localhost:5000";
+  
+  // Debug: Log backend link khi component mount
+  useEffect(() => {
+    console.log("🔗 Backend URL:", backendLink);
+    console.log("🔗 VITE_Link_backend:", import.meta.env.VITE_Link_backend);
+  }, [backendLink]);
+  
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
@@ -22,6 +30,12 @@ const Login = () => {
     }
     setError("");
   };
+
+  const EnableLogin = (token) => {
+    if (token) {
+      setIsVerrified(true);
+    }
+  }
 
   const validateForm = () => {
     const errors = {};
@@ -51,7 +65,13 @@ const Login = () => {
     setError("");
 
     try {
-      const response = await axios.post("http://localhost:5000/api/auth/login", formData);
+      console.log(`📤 Đang gửi request đến: ${backendLink}/api/auth/login`);
+      const response = await axios.post(`${backendLink}/api/auth/login`, formData, {
+        timeout: 10000, // 10 giây timeout
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      });
 
       // ✅ Kiểm tra phản hồi từ server
       if (response.data && response.data.user && response.data.token) {
@@ -62,16 +82,23 @@ const Login = () => {
         localStorage.setItem("user", JSON.stringify(user));
         localStorage.setItem("email", user.email);
         localStorage.setItem("username", user.username);  // Lưu username vào localStorage
-         localStorage.setItem("id", user.id);
-        
+        localStorage.setItem("id", user.id);
+        localStorage.setItem("role", user.role);  // Lưu role vào localStorage
 
+        console.log("✅ Đăng nhập thành công, role:", user.role);
 
         // ✅ Điều hướng theo role
-        if (user.role === "admin") {
+        // Xử lý cả "handlereport" và "handle report" (có thể có space trong database)
+        const userRole = user.role?.toLowerCase().trim();
+        
+        if (userRole === "admin") {
+          console.log("🔄 Chuyển hướng đến trang Admin");
           navigate("/admin");
-        } else if (user.role === "handlereport") {
+        } else if (userRole === "handlereport" || userRole === "handle report") {
+          console.log("🔄 Chuyển hướng đến trang HandleReport");
           navigate("/processor");
         } else {
+          console.log("🔄 Chuyển hướng đến trang chủ");
           navigate("/plashscreen");
         }
       } else {
@@ -80,8 +107,24 @@ const Login = () => {
 
     } catch (err) {
       console.error("Login error:", err);
-      if (err.response?.data?.error) {
-        setError(err.response.data.error);
+      
+      // Xử lý các loại lỗi khác nhau
+      if (err.code === 'ERR_NETWORK' || err.message === 'Network Error') {
+        setError(`Không thể kết nối đến server tại ${backendLink}. Vui lòng kiểm tra:
+        - Backend server đang chạy (chạy: cd Back-end && node index.js)
+        - Kiểm tra file .env có VITE_Link_backend=http://localhost:5000
+        - Restart frontend dev server sau khi sửa .env`);
+      } else if (err.response) {
+        // Server trả về lỗi
+        if (err.response.status === 400) {
+          setError(err.response.data?.error || "Email hoặc mật khẩu không đúng.");
+        } else if (err.response.status === 403) {
+          setError(err.response.data?.error || "Tài khoản của bạn đã bị khóa.");
+        } else if (err.response.status === 500) {
+          setError("Lỗi server. Vui lòng thử lại sau.");
+        } else {
+          setError(err.response.data?.error || "Đã xảy ra lỗi, vui lòng thử lại.");
+        }
       } else {
         setError("Đã xảy ra lỗi, vui lòng thử lại.");
       }
@@ -119,9 +162,8 @@ const Login = () => {
                   value={formData.email}
                   onChange={handleChange}
                   placeholder={t.phoneEmailUser}
-                  className={`w-full p-2 text-sm border rounded focus:outline-none ${
-                    validationErrors.email ? "border-red-500" : "border-gray-700"
-                  }`}
+                  className={`w-full p-2 text-sm border rounded focus:outline-none ${validationErrors.email ? "border-red-500" : "border-gray-700"
+                    }`}
                 />
                 {validationErrors.email && (
                   <p className="text-red-500 text-xs mt-1">{validationErrors.email}</p>
@@ -134,9 +176,8 @@ const Login = () => {
                   value={formData.password}
                   onChange={handleChange}
                   placeholder={t.password}
-                  className={`w-full p-2 text-sm border rounded focus:outline-none ${
-                    validationErrors.password ? "border-red-500" : "border-gray-700"
-                  }`}
+                  className={`w-full p-2 text-sm border rounded focus:outline-none ${validationErrors.password ? "border-red-500" : "border-gray-700"
+                    }`}
                 />
                 {formData.password && (
                   <button
@@ -153,11 +194,15 @@ const Login = () => {
               </div>
 
               {error && <p className="text-red-500 text-sm text-center mt-1">{error}</p>}
-
+              <ReCAPTCHA
+                sitekey={siteKey}
+                onChange={(value) => EnableLogin(value)}
+              />
               <button
                 type="submit"
+
                 className="w-full p-2 mt-4 bg-blue-500 text-white rounded-lg font-semibold hover:bg-blue-600 transition disabled:opacity-50 cursor-pointer"
-                disabled={loading}
+                disabled={!isVerrified || loading}
               >
                 {loading ? "Đang đăng nhập..." : t.loginTitle}
               </button>
@@ -199,7 +244,7 @@ const Login = () => {
             onChange={handleLanguageChange}
             className="bg-white text-gray-500 text-xs focus:outline-none cursor-pointer"
           >
-            <option value="vi">Tiếng Việt</option>
+            <option value="vi">Tiếng Việt </option>
             <option value="en">English</option>
           </select>
           <span>{t.footer.copyright}</span>

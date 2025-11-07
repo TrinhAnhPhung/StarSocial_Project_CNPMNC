@@ -25,7 +25,7 @@ const Modal = ({ isOpen, onClose, title, data = [], loading }) => {
               <ul className="space-y-3">
                 {data.map(user => (
                   <li key={user.id} className="flex items-center justify-between">
-                    <Link to={`/profile/${user.username}`} onClick={onClose} className="flex items-center gap-3">
+                    <Link to={`/profile/${user.id || user.email || user.username}`} onClick={onClose} className="flex items-center gap-3">
                       <img src={user.profile_picture_url || 'https://via.placeholder.com/150'} alt={user.username} className="w-12 h-12 rounded-full object-cover" />
                       <div>
                         <p className="font-bold">{user.username}</p>

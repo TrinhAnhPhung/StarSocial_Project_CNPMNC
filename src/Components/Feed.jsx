@@ -7,16 +7,21 @@ const Feed = () => {
     const [posts, setPosts] = useState([]);
     const [hasMore, setHasMore] = useState(true);
     const [page, setPage] = useState(1); // Thêm state để quản lý trang cho infinite scroll
-
+    const linkBackend = import.meta.env.VITE_Link_backend || 'http://localhost:5000';
     // Hàm lấy dữ liệu từ API
     const fetchPosts = async () => {
         try {
             // Thêm page vào query để backend biết cần tải trang nào
-            const response = await axios.get(`http://localhost:5000/api/posts?page=${page}`);
+            const response = await axios.get(`${linkBackend}/api/posts?page=${page}`);
             console.log('Posts fetched from API:', response.data);
 
             if (response.data.length > 0) {
-                setPosts((prevPosts) => [...prevPosts, ...response.data]);
+                // Loại bỏ posts trùng lặp dựa trên ID
+                setPosts((prevPosts) => {
+                    const existingIds = new Set(prevPosts.map(p => p.id));
+                    const newPosts = response.data.filter(p => !existingIds.has(p.id));
+                    return [...prevPosts, ...newPosts];
+                });
                 setPage((prevPage) => prevPage + 1); // Tăng số trang cho lần gọi tiếp theo
             } else {
                 setHasMore(false); // Nếu không còn bài viết, dừng việc tải thêm
@@ -37,10 +42,10 @@ const Feed = () => {
     const handleToggleLike = async (postId) => {
         try {
             // Lấy token từ localStorage hoặc context
-            const token = localStorage.getItem('token'); 
-            
+            const token = localStorage.getItem('token');
+
             // Gọi API toggle like ở backend
-            await axios.post(`http://localhost:5000/api/posts/${postId}/like`, {}, {
+            await axios.post(`${linkBackend}/api/posts/${postId}/like`, {}, {
                 headers: { Authorization: `Bearer ${token}` }
             });
 
@@ -72,7 +77,7 @@ const Feed = () => {
         }
     };
 
-    
+
 
     // --- HÀM XỬ LÝ THÊM BÌNH LUẬN ---
     const handleAddComment = async (postId, content) => {
@@ -80,12 +85,12 @@ const Feed = () => {
 
         try {
             const token = localStorage.getItem('token');
-            
+
             // Gọi API thêm bình luận
-            const response = await axios.post(`http://localhost:5000/api/posts/${postId}/comments`, { content }, {
+            const response = await axios.post(`${linkBackend}/api/posts/${postId}/comments`, { content }, {
                 headers: { Authorization: `Bearer ${token}` }
             });
-            
+
             const newComment = response.data.comment; // Lấy bình luận mới từ response của API
 
             // Cập nhật lại trạng thái
@@ -114,14 +119,19 @@ const Feed = () => {
                 loader={<div className="text-center text-gray-500 py-4">Đang tải...</div>}
                 endMessage={<div className="text-center text-gray-500 py-4">Bạn đã xem hết tất cả bài viết.</div>}
             >
-                {posts.map(post => (
-                    <PostCard 
-                        key={post.id} 
-                        post={post} 
-                        // Truyền các hàm xử lý xuống cho PostCard
-                        onToggleLike={handleToggleLike} 
-                        onAddComment={handleAddComment}
-                    />  
+                {posts.map((post, index) => (
+                    <PostCard
+                        key={`post-${post.id}-${index}`}
+                        post={post}
+                        onPostDeleted={(deletedPostId) => {
+                            setPosts(posts.filter(p => p.id !== deletedPostId));
+                        }}
+                        onPostUpdated={(postId, updatedPost) => {
+                            setPosts(posts.map(p => 
+                                p.id === postId ? { ...p, ...updatedPost } : p
+                            ));
+                        }}
+                    />
                 ))}
             </InfiniteScroll>
         </div>

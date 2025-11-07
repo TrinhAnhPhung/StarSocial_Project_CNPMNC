@@ -1,23 +1,16 @@
 // AdminPage.jsx
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import {
   FiSearch, FiPlus, FiEdit, FiTrash2, FiMoreHorizontal,
-  FiChevronDown, FiLogOut, FiSettings
+  FiChevronDown, FiLogOut, FiSettings, FiLock, FiUnlock
 } from 'react-icons/fi';
 import { CgData } from "react-icons/cg";
 import { Link } from 'react-router-dom';
 import AddUserModal from '../Components/AddUserModal';
 import { AnimatePresence } from 'framer-motion';
+import axios from 'axios';
 
-// Initial dummy user data to match PostgreSQL structure
-const initialUsers = [
-  { email: 'john.smith@gmail.com', full_name: 'John Smith', status: 'Active', role: 'Admin', joined_date: '2025-03-12' },
-  { email: 'dwarren3@gmail.com', full_name: 'David Warren', status: 'Banned', role: 'User', joined_date: '2025-01-08' },
-  { email: 'belleclark@gmail.com', full_name: 'Belle Clark', status: 'Active', role: 'Handle Report', joined_date: '2025-08-30' },
-  { email: 'lucamich@gmail.com', full_name: 'Luca Mich', status: 'Active', role: 'User', joined_date: '2025-04-23' },
-  { email: 'markwill32@gmail.com', full_name: 'Mark Williams', status: 'Banned', role: 'User', joined_date: '2025-01-14' },
-  { email: 'noemivill99@gmail.com', full_name: 'Noemi Villas', status: 'Active', role: 'Admin', joined_date: '2025-08-10' },
-];
+const linkBackend = import.meta.env.VITE_Link_backend || 'http://localhost:5000';
 
 // --- Sub-Components ---
 
@@ -27,7 +20,7 @@ const StatusBadge = ({ status }) => {
     Active: 'bg-green-100 text-green-700',
     Banned: 'bg-red-200 text-red-800',
   };
-  return <span className={`${baseClasses} ${statusClasses[status]}`}>{status}</span>;
+  return <span className={`${baseClasses} ${statusClasses[status] || statusClasses.Active}`}>{status}</span>;
 };
 
 const Sidebar = () => {
@@ -68,7 +61,7 @@ const Sidebar = () => {
   );
 };
 
-const Header = ({ searchTerm, setSearchTerm, onOpenModal }) => {
+const Header = ({ searchTerm, setSearchTerm, onOpenModal, loading }) => {
   return (
     <header className="flex items-center justify-between px-6 py-4 border-b w-full">
       <div className="relative w-full mr-4">
@@ -83,7 +76,8 @@ const Header = ({ searchTerm, setSearchTerm, onOpenModal }) => {
       </div>
       <button
         onClick={onOpenModal}
-        className="flex items-center bg-gray-800 text-white px-4 py-2 rounded-lg hover:bg-gray-700 cursor-pointer whitespace-nowrap"
+        disabled={loading}
+        className="flex items-center bg-gray-800 text-white px-4 py-2 rounded-lg hover:bg-gray-700 cursor-pointer whitespace-nowrap disabled:opacity-50"
       >
         <FiPlus className="mr-2" /> Add User
       </button>
@@ -95,18 +89,24 @@ const MonthlyStats = ({ users }) => {
   const monthlyData = useMemo(() => {
     const stats = {};
     users.forEach(user => {
-      const date = new Date(user.joined_date);
-      const month = date.toLocaleString('en-us', { month: 'long' });
-      const year = date.getFullYear();
-      const key = `${month} ${year}`;
-      stats[key] = (stats[key] || 0) + 1;
+      if (user.joined_date) {
+        const date = new Date(user.joined_date);
+        const month = date.toLocaleString('en-us', { month: 'long' });
+        const year = date.getFullYear();
+        const key = `${month} ${year}`;
+        stats[key] = (stats[key] || 0) + 1;
+      }
     });
     return stats;
   }, [users]);
 
+  if (Object.keys(monthlyData).length === 0) {
+    return null;
+  }
+
   return (
     <div className="p-6">
-      <h3 className="text-xl font-bold text-gray-800 mb-4">Monthly User Statistics (2025)</h3>
+      <h3 className="text-xl font-bold text-gray-800 mb-4">Monthly User Statistics</h3>
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {Object.entries(monthlyData).map(([month, count]) => (
           <div key={month} className="bg-blue-50 border border-blue-200 p-4 rounded-lg shadow-sm">
@@ -121,17 +121,35 @@ const MonthlyStats = ({ users }) => {
 };
 
 
-const UserTable = ({ users, searchTerm, onEdit, onDelete }) => {
+const UserTable = ({ users, searchTerm, onEdit, onDelete, onToggleLock, loading, currentUserId }) => {
   const filteredUsers = users.filter(user =>
-    user.email.toLowerCase().includes(searchTerm.toLowerCase())
+    user.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    user.full_name?.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
+  if (loading) {
+    return (
+      <div className="px-6 py-12 text-center">
+        <p className="text-gray-500">Đang tải dữ liệu...</p>
+      </div>
+    );
+  }
+
+  if (filteredUsers.length === 0) {
+    return (
+      <div className="px-6 py-12 text-center">
+        <p className="text-gray-500">Không tìm thấy người dùng nào</p>
+      </div>
+    );
+  }
+
   return (
-    <div className="px-6 py-4">
+    <div className="px-6 py-4 overflow-x-auto">
       <table className="min-w-full bg-white">
         <thead>
           <tr className='text-left text-gray-500'>
             <th className="p-4">Email <FiChevronDown className="inline ml-1" /></th>
+            <th className="p-4">Full Name</th>
             <th className="p-4">Status <FiChevronDown className="inline ml-1" /></th>
             <th className="p-4">Role <FiChevronDown className="inline ml-1" /></th>
             <th className="p-4">Joined Date <FiChevronDown className="inline ml-1" /></th>
@@ -140,18 +158,46 @@ const UserTable = ({ users, searchTerm, onEdit, onDelete }) => {
         </thead>
         <tbody>
           {filteredUsers.map((user) => (
-            <tr key={user.email} className="border-t hover:bg-gray-50">
+            <tr key={user.id} className="border-t hover:bg-gray-50">
               <td className="p-4 font-medium text-gray-800">{user.email}</td>
+              <td className="p-4 text-gray-600">{user.full_name || 'N/A'}</td>
               <td className="p-4"><StatusBadge status={user.status} /></td>
-              <td className="p-4 text-gray-600">{user.role}</td>
-              <td className="p-4 text-gray-600">{new Date(user.joined_date).toLocaleDateString('en-US', {
-                month: 'long',
-                day: 'numeric',
-                year: 'numeric',
-              })}</td>
+              <td className="p-4 text-gray-600">{user.role || 'user'}</td>
+              <td className="p-4 text-gray-600">
+                {user.joined_date 
+                  ? new Date(user.joined_date).toLocaleDateString('en-US', {
+                      month: 'long',
+                      day: 'numeric',
+                      year: 'numeric',
+                    })
+                  : 'N/A'}
+              </td>
               <td className="p-4 text-center">
-                <button onClick={() => onEdit(user)} className="text-gray-500 hover:text-blue-600 mr-4"><FiEdit size={18} /></button>
-                <button onClick={() => onDelete(user.email)} className="text-gray-500 hover:text-red-600"><FiTrash2 size={18} /></button>
+                <div className="flex items-center justify-center gap-2">
+                  <button 
+                    onClick={() => onEdit(user)} 
+                    className="text-gray-500 hover:text-blue-600 p-1" 
+                    title="Edit"
+                  >
+                    <FiEdit size={18} />
+                  </button>
+                  <button 
+                    onClick={() => onToggleLock(user)} 
+                    className={`p-1 ${user.isLocked ? 'text-green-600 hover:text-green-700' : 'text-orange-600 hover:text-orange-700'}`}
+                    title={user.isLocked ? 'Unlock' : 'Lock'}
+                    disabled={user.id === currentUserId}
+                  >
+                    {user.isLocked ? <FiUnlock size={18} /> : <FiLock size={18} />}
+                  </button>
+                  <button 
+                    onClick={() => onDelete(user)} 
+                    className="text-gray-500 hover:text-red-600 p-1"
+                    title="Delete"
+                    disabled={user.id === currentUserId || user.role?.toLowerCase() === 'admin'}
+                  >
+                    <FiTrash2 size={18} />
+                  </button>
+                </div>
               </td>
             </tr>
           ))}
@@ -167,8 +213,44 @@ const UserTable = ({ users, searchTerm, onEdit, onDelete }) => {
 const AdminPage = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [modalOpen, setModalOpen] = useState(false);
-  const [users, setUsers] = useState(initialUsers);
+  const [users, setUsers] = useState([]);
   const [editingUser, setEditingUser] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+  const [currentUserId, setCurrentUserId] = useState(null);
+
+  // Lấy token và userId từ localStorage
+  const token = localStorage.getItem('token');
+  const user = JSON.parse(localStorage.getItem('user') || '{}');
+  const userId = user?.id || localStorage.getItem('id');
+
+  useEffect(() => {
+    setCurrentUserId(userId);
+    fetchUsers();
+  }, [userId]);
+
+  // Fetch users từ API
+  const fetchUsers = async () => {
+    try {
+      setLoading(true);
+      setError('');
+      const response = await axios.get(`${linkBackend}/api/admin/users`, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+      setUsers(response.data || []);
+    } catch (err) {
+      console.error('Error fetching users:', err);
+      setError(err.response?.data?.error || 'Không thể tải danh sách người dùng');
+      if (err.response?.status === 403) {
+        setError('Bạn không có quyền truy cập');
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleOpenAddModal = () => {
     setEditingUser(null);
@@ -180,31 +262,111 @@ const AdminPage = () => {
     setModalOpen(true);
   };
   
-  const handleDeleteUser = (emailToDelete) => {
-    if (window.confirm(`Are you sure you want to delete user: ${emailToDelete}?`)) {
-      setUsers(users.filter(user => user.email !== emailToDelete));
+  const handleDeleteUser = async (userToDelete) => {
+    if (!window.confirm(`Bạn có chắc chắn muốn xóa người dùng: ${userToDelete.email}?`)) {
+      return;
+    }
+
+    try {
+      await axios.delete(`${linkBackend}/api/admin/users/${userToDelete.id}`, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+      
+      // Refresh danh sách
+      await fetchUsers();
+      alert('Đã xóa người dùng thành công');
+    } catch (err) {
+      console.error('Error deleting user:', err);
+      alert(err.response?.data?.error || 'Không thể xóa người dùng');
     }
   };
 
-  const handleSaveUser = (userData) => {
-    if (editingUser) {
-      setUsers(users.map(user => {
-        if (user.email === editingUser.email) {
-          const newPassword = userData.password ? userData.password : user.password;
-          return { ...user, ...userData, password: newPassword };
-        }
-        return user;
-      }));
-    } else {
-      const newUser = {
-        ...userData,
-        joined_date: new Date().toISOString().slice(0, 10),
-        status: 'Active'
-      };
-      setUsers(prevUsers => [newUser, ...prevUsers]);
+  const handleToggleLock = async (user) => {
+    const action = user.isLocked ? 'mở khóa' : 'khóa';
+    if (!window.confirm(`Bạn có chắc chắn muốn ${action} người dùng: ${user.email}?`)) {
+      return;
     }
-    setModalOpen(false);
-    setEditingUser(null);
+
+    try {
+      await axios.patch(
+        `${linkBackend}/api/admin/users/${user.id}/lock`,
+        { isLocked: !user.isLocked },
+        {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          }
+        }
+      );
+      
+      // Refresh danh sách
+      await fetchUsers();
+      alert(`Đã ${action} người dùng thành công`);
+    } catch (err) {
+      console.error('Error toggling lock:', err);
+      alert(err.response?.data?.error || `Không thể ${action} người dùng`);
+    }
+  };
+
+  const handleSaveUser = async (userData) => {
+    try {
+      if (editingUser) {
+        // Update user
+        const updateData = {
+          first_name: userData.first_name,
+          last_name: userData.last_name,
+          role: userData.role,
+        };
+        
+        if (userData.password) {
+          updateData.password = userData.password;
+        }
+
+        await axios.put(
+          `${linkBackend}/api/admin/users/${editingUser.id}`,
+          updateData,
+          {
+            headers: {
+              'Authorization': `Bearer ${token}`,
+              'Content-Type': 'application/json'
+            }
+          }
+        );
+        
+        alert('Đã cập nhật người dùng thành công');
+      } else {
+        // Create user
+        await axios.post(
+          `${linkBackend}/api/admin/users`,
+          {
+            email: userData.email,
+            password: userData.password,
+            first_name: userData.first_name,
+            last_name: userData.last_name,
+            role: userData.role
+          },
+          {
+            headers: {
+              'Authorization': `Bearer ${token}`,
+              'Content-Type': 'application/json'
+            }
+          }
+        );
+        
+        alert('Đã tạo người dùng thành công');
+      }
+      
+      // Refresh danh sách
+      await fetchUsers();
+      setModalOpen(false);
+      setEditingUser(null);
+    } catch (err) {
+      console.error('Error saving user:', err);
+      alert(err.response?.data?.error || 'Không thể lưu người dùng');
+    }
   };
 
   return (
@@ -212,13 +374,26 @@ const AdminPage = () => {
       <Sidebar />
       <main className="ml-64 flex-1 flex flex-col">
         <div className="m-6 bg-white rounded-lg shadow">
-          <Header searchTerm={searchTerm} setSearchTerm={setSearchTerm} onOpenModal={handleOpenAddModal} />
+          <Header 
+            searchTerm={searchTerm} 
+            setSearchTerm={setSearchTerm} 
+            onOpenModal={handleOpenAddModal}
+            loading={loading}
+          />
+          {error && (
+            <div className="px-6 py-4 bg-red-50 border-l-4 border-red-500 text-red-700">
+              {error}
+            </div>
+          )}
           <MonthlyStats users={users} />
           <UserTable 
             searchTerm={searchTerm} 
             users={users} 
             onEdit={handleOpenEditModal}
             onDelete={handleDeleteUser}
+            onToggleLock={handleToggleLock}
+            loading={loading}
+            currentUserId={currentUserId}
           />
         </div>
         

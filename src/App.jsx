@@ -1,8 +1,6 @@
 import React from 'react';
 import { Routes, Route } from 'react-router-dom';
 import ProtectedRoute from './ProtectedRoute';
-
-// Layout & Main Components
 import MainLayout from './MainLayout';
 import Feed from './Components/Feed';
 import Explore from './Components/Explore';
@@ -10,33 +8,38 @@ import People from './Components/People';
 import Saved from './Components/Saved';
 import CreatePost from './Components/CreatePost';
 import Profile from './Components/Profile';
-import Editprofile from './Components/Editprofile';
-import Notification from './Components/notification';
+import Editprofile from './Components/EditProfileModal';
+import Notification from "./Components/Notification/pages/Notification";
+import NotificationPage from "./Components/NotificationPage";
 import EditPostPage from './Components/EditPostPage';
-
-// Auth Components
+import ChatSettings from './Components/Chat/ChatModal'; 
 import Login from './Login/Login';
 import Register from './Login/Register';
 import SplashScreen from './Login/plashscreen';
-
-// Admin & Report Handling Components
+import Forgotpass from './Login/Forgotpass';
+import ResetPassword from "./Login/ResetPassword";
 import AdminPage from './Admin/AdminPage';
 import ReportProcessorPage from './HandleReport/ReportProcessorDashboard';
 import Blockaccount from './HandleReport/Blockaccount';
 import SensitiveKeywordStatistics from './HandleReport/Sensitivekey';
 import ReportLayout from './HandleReport/ReportLayout';
+import { PopupProvider } from './Components/IsPopup';
+import EditProfileModal from './Components/EditProfileModal';
 
 const App = () => {
-  return (
+  return (<PopupProvider>
     <Routes>
       {/* Auth routes */}
       <Route path="/Login" element={<Login />} />
       <Route path="/Register" element={<Register />} />
       <Route path="/plashscreen" element={<SplashScreen />} />
+      <Route path="/Forgotpass" element={<Forgotpass />} />
+      <Route path="/reset-password/:token" element={<ResetPassword />} />
 
       {/* Standalone pages */}
-      <Route path="/editprofile" element={<Editprofile />} />
-      <Route path="/Notification" element={<Notification />} />
+      <Route path="/editprofile" element={<EditProfileModal />} />
+      <Route path="/notification" element={<NotificationPage />} />
+      <Route path="/Notification" element={<NotificationPage />} />
 
       {/* Admin route */}
       <Route
@@ -65,14 +68,17 @@ const App = () => {
       <Route element={<MainLayout />}>
         <Route path="/" element={<Feed />} />
         <Route path="/profile" element={<Profile />} />
+        <Route path="/profile/:userId" element={<Profile />} />
         <Route path="/explore" element={<Explore />} />
         <Route path="/people" element={<People />} />
         <Route path="/saved" element={<Saved />} />
         <Route path="/create-post" element={<CreatePost />} />
         <Route path="/edit-post/:postId" element={<EditPostPage />} />
+        <Route path="/messages" element={<ChatSettings />} />
       </Route>
-    </Routes>
+    </Routes></PopupProvider>
   );
 };
 
 export default App;
+

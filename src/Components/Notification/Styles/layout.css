@@ -1,0 +1,37 @@
+/* Code này để làm gì: Quy ước layout chung (page, panel, stack) */
+
+.page {
+  min-height: 100vh;
+  background: var(--bg);
+}
+
+.page--center {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-4);
+}
+
+.panel {
+  width: 100%;
+  background: var(--panel-bg);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-1);
+  padding: 1.5rem;
+}
+
+.panel--narrow {
+  max-width: 40rem; /* ~640px */
+  margin: 0 auto;
+}
+
+/* Stack dọc có khoảng cách đều bằng gap */
+.stack {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+}
+
+.stack--sm {
+  gap: 1rem;
+}

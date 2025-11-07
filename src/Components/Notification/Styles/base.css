@@ -1,0 +1,41 @@
+/* Code này để làm gì: Reset cơ bản + biến CSS dùng toàn app */
+
+/* Reset nhẹ nhàng */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html, body, #root {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  font-family: system-ui, -apple-system, Segoe UI, Roboto, "Helvetica Neue",
+    Arial, "Noto Sans", "Liberation Sans", sans-serif;
+  color: #111827; /* text */
+  background: #f3f4f6; /* page bg */
+}
+
+/* Biến thiết kế */
+:root {
+  --bg: #f3f4f6;              /* nền trang */
+  --panel-bg: #ffffff;         /* nền khung trắng */
+  --text: #111827;             /* màu chữ chính */
+  --muted: #6b7280;            /* chữ mờ */
+  --primary-100: #dbeafe;      /* nền thông báo chưa đọc */
+  --neutral-100: #f3f4f6;      /* nền item đã đọc */
+  --neutral-200: #e5e7eb;      /* hover */
+  --border: #e5e7eb;
+
+  --radius-lg: 16px;
+  --radius-md: 12px;
+
+  --shadow-1: 0 10px 20px rgba(0, 0, 0, 0.06);
+  --shadow-2: 0 4px 10px rgba(0, 0, 0, 0.05);
+
+  --space-4: 1rem;   /* 16px */
+  --space-6: 1.5rem; /* 24px */
+}
