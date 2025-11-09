@@ -35,8 +35,19 @@ const Feed = () => {
 
     useEffect(() => {
         fetchPosts(); // Lấy bài viết lần đầu khi trang được tải
-        // eslint-disable-next-line react-hooks/exhaustive-deps
+        
     }, []);
+
+    useEffect(() => {
+  const hash = window.location.hash;
+  if (hash && hash.startsWith('#post-')) {
+    const elementId = hash.substring(1); // bỏ dấu #
+    const el = document.getElementById(elementId);
+    if (el) {
+      el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+  }
+}, [posts]);
 
     // --- HÀM XỬ LÝ THẢ TIM ---
     const handleToggleLike = async (postId) => {
@@ -120,19 +131,24 @@ const Feed = () => {
                 endMessage={<div className="text-center text-gray-500 py-4">Bạn đã xem hết tất cả bài viết.</div>}
             >
                 {posts.map((post, index) => (
-                    <PostCard
-                        key={`post-${post.id}-${index}`}
-                        post={post}
-                        onPostDeleted={(deletedPostId) => {
-                            setPosts(posts.filter(p => p.id !== deletedPostId));
-                        }}
-                        onPostUpdated={(postId, updatedPost) => {
-                            setPosts(posts.map(p => 
-                                p.id === postId ? { ...p, ...updatedPost } : p
-                            ));
-                        }}
-                    />
-                ))}
+  <div
+    key={`post-${post.id}-${index}`}
+    id={`post-${post.id}`}              // ✅ KHÓA ĐỂ NOTI SCROLL TỚI
+  >
+    <PostCard
+      post={post}
+      onPostDeleted={(deletedPostId) => {
+        setPosts(posts.filter(p => p.id !== deletedPostId));
+      }}
+      onPostUpdated={(postId, updatedPost) => {
+        setPosts(posts.map(p =>
+          p.id === postId ? { ...p, ...updatedPost } : p
+        ));
+      }}
+    />
+  </div>
+))}
+
             </InfiniteScroll>
         </div>
     );
