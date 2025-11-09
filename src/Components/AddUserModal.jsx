@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { FiEye, FiEyeOff } from 'react-icons/fi';
+import { FiEye, FiEyeOff, FiLoader } from 'react-icons/fi';
 import { motion } from 'framer-motion';
 
-const AddUserModal = ({ onClose, onSubmit, initialData }) => {
+const AddUserModal = ({ onClose, onSubmit, initialData, loading = false }) => {
   const isEditMode = Boolean(initialData);
 
   const [email, setEmail] = useState('');
@@ -11,6 +11,7 @@ const AddUserModal = ({ onClose, onSubmit, initialData }) => {
   const [lastName, setLastName] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [role, setRole] = useState('user');
+  const [errors, setErrors] = useState({});
 
   // SỬA LỖI TẠI ĐÂY: Thêm khối 'else' để reset form
   useEffect(() => {
@@ -37,29 +38,55 @@ const AddUserModal = ({ onClose, onSubmit, initialData }) => {
       setLastName('');
       setRole('user');
     }
+    // Reset errors khi modal mở/đóng hoặc initialData thay đổi
+    setErrors({});
+    setShowPassword(false);
   }, [initialData, isEditMode]);
 
-  const handleSave = () => {
-    if (!email) {
-      alert('Email không được để trống.');
-      return;
+  const validateForm = () => {
+    const newErrors = {};
+
+    if (!email.trim()) {
+      newErrors.email = 'Email không được để trống';
+    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      newErrors.email = 'Email không hợp lệ';
     }
-    if (!firstName || !lastName) {
-      alert('Họ và tên không được để trống.');
-      return;
+
+    if (!firstName.trim()) {
+      newErrors.firstName = 'Họ không được để trống';
     }
-    if (!isEditMode && !password) {
-      alert('Mật khẩu không được để trống khi tạo người dùng mới.');
+
+    if (!lastName.trim()) {
+      newErrors.lastName = 'Tên không được để trống';
+    }
+
+    if (!isEditMode && !password.trim()) {
+      newErrors.password = 'Mật khẩu không được để trống khi tạo người dùng mới';
+    } else if (!isEditMode && password.trim().length < 6) {
+      newErrors.password = 'Mật khẩu phải có ít nhất 6 ký tự';
+    }
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
+  const handleSave = async () => {
+    if (!validateForm()) {
       return;
     }
     
-    onSubmit({ 
-      email, 
-      password, 
-      first_name: firstName,
-      last_name: lastName,
-      role 
-    });
+    try {
+      await onSubmit({ 
+        email: email.trim(), 
+        password: password.trim(), 
+        first_name: firstName.trim(),
+        last_name: lastName.trim(),
+        role 
+      });
+    } catch (error) {
+      // Error đã được xử lý trong parent component
+      console.error('Error saving user:', error);
+    }
   };
   
   const backdropVariants = {
@@ -99,20 +126,38 @@ const AddUserModal = ({ onClose, onSubmit, initialData }) => {
               <input
                 type="text"
                 value={firstName}
-                onChange={(e) => setFirstName(e.target.value)}
+                onChange={(e) => {
+                  setFirstName(e.target.value);
+                  if (errors.firstName) setErrors({ ...errors, firstName: '' });
+                }}
                 placeholder="Nguyễn"
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                  errors.firstName ? 'border-red-500' : 'border-gray-300'
+                }`}
+                disabled={loading}
               />
+              {errors.firstName && (
+                <p className="text-red-500 text-xs mt-1">{errors.firstName}</p>
+              )}
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Tên</label>
               <input
                 type="text"
                 value={lastName}
-                onChange={(e) => setLastName(e.target.value)}
+                onChange={(e) => {
+                  setLastName(e.target.value);
+                  if (errors.lastName) setErrors({ ...errors, lastName: '' });
+                }}
                 placeholder="Văn A"
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                  errors.lastName ? 'border-red-500' : 'border-gray-300'
+                }`}
+                disabled={loading}
               />
+              {errors.lastName && (
+                <p className="text-red-500 text-xs mt-1">{errors.lastName}</p>
+              )}
             </div>
           </div>
 
@@ -122,11 +167,20 @@ const AddUserModal = ({ onClose, onSubmit, initialData }) => {
             <input
               type="email"
               value={email}
-              onChange={(e) => setEmail(e.target.value)}
+              onChange={(e) => {
+                setEmail(e.target.value);
+                if (errors.email) setErrors({ ...errors, email: '' });
+              }}
               placeholder="johndoe@mail.com"
-              className={`w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${isEditMode ? 'bg-gray-200 cursor-not-allowed' : ''}`}
+              className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                isEditMode ? 'bg-gray-200 cursor-not-allowed' : ''
+              } ${errors.email ? 'border-red-500' : 'border-gray-300'}`}
               readOnly={isEditMode}
+              disabled={loading}
             />
+            {errors.email && (
+              <p className="text-red-500 text-xs mt-1">{errors.email}</p>
+            )}
           </div>
 
           {/* Role */}
@@ -136,10 +190,13 @@ const AddUserModal = ({ onClose, onSubmit, initialData }) => {
               value={role} 
               onChange={(e) => setRole(e.target.value)} 
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              disabled={loading}
             >
               <option value="user">User</option>
               <option value="admin">Admin</option>
+              <option value="moderator">Moderator</option>
               <option value="handlereport">Handle Report</option>
+              <option value="guest">Guest</option>
             </select>
           </div>
 
@@ -152,31 +209,44 @@ const AddUserModal = ({ onClose, onSubmit, initialData }) => {
             <input
               type={showPassword ? 'text' : 'password'}
               value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              placeholder={isEditMode ? 'Nhập mật khẩu mới...' : 'Nhập mật khẩu'}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg pr-10 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              onChange={(e) => {
+                setPassword(e.target.value);
+                if (errors.password) setErrors({ ...errors, password: '' });
+              }}
+              placeholder={isEditMode ? 'Nhập mật khẩu mới...' : 'Nhập mật khẩu (ít nhất 6 ký tự)'}
+              className={`w-full px-4 py-2 border rounded-lg pr-10 focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                errors.password ? 'border-red-500' : 'border-gray-300'
+              }`}
+              disabled={loading}
             />
             <button 
               type="button" 
               onClick={() => setShowPassword(!showPassword)} 
               className="absolute top-8 right-3 text-gray-500 hover:text-gray-700"
+              disabled={loading}
             >
               {showPassword ? <FiEyeOff /> : <FiEye />}
             </button>
+            {errors.password && (
+              <p className="text-red-500 text-xs mt-1">{errors.password}</p>
+            )}
           </div>
         </div>
 
         <div className="flex justify-between items-center mt-8">
           <button 
             onClick={onClose} 
-            className="text-gray-600 px-6 py-2 rounded-lg hover:bg-gray-100 transition-colors"
+            className="text-gray-600 px-6 py-2 rounded-lg hover:bg-gray-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            disabled={loading}
           >
             Hủy
           </button>
           <button 
             onClick={handleSave} 
-            className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition-colors"
+            className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+            disabled={loading}
           >
+            {loading && <FiLoader className="animate-spin" />}
             {isEditMode ? 'Lưu thay đổi' : 'Thêm người dùng'}
           </button>
         </div>
