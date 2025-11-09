@@ -4,6 +4,7 @@
 import { createRequire } from 'module';
 const require = createRequire(import.meta.url);
 const { sql, connection } = require('../src/Config/SqlConnection.js'); 
+const { notificationConnection } = require('../src/Config/NotificationSqlConnection.js'); // ✅ thêm duy nhất 1 dòng import
 import { updateMe } from './profileController.js';
 
 // --- CHỨC NĂNG THÍCH / BỎ THÍCH ---
@@ -28,14 +29,16 @@ const toggleLike = async (req, res) => {
     try {
         const pool = await connection();
 
-        // Kiểm tra post có tồn tại không
+        // Kiểm tra post có tồn tại không + lấy luôn chủ bài viết
         const postCheck = await pool.request()
             .input('post_id', sql.BigInt, postIdNum)
-            .query('SELECT Post_id FROM [Post] WHERE Post_id = @post_id');
+            .query('SELECT Post_id, user_id FROM [Post] WHERE Post_id = @post_id'); // ✅ chỉ thêm user_id
         
         if (postCheck.recordset.length === 0) {
             return res.status(404).json({ error: 'Không tìm thấy bài viết.' });
         }
+
+        const postOwnerId = postCheck.recordset[0].user_id; // ✅ dùng cho notification
 
         // 1. Kiểm tra xem đã like chưa
         // Thử với tên cột chữ hoa đầu trước (User_id, Post_id)
@@ -116,6 +119,25 @@ const toggleLike = async (req, res) => {
             }
             
             const likesCount = parseInt(likeCountResult.recordset[0].count) || 0;
+
+            // ✅ THÔNG BÁO LIKE: người khác thích bài viết của tôi
+            try {
+                if (postOwnerId && String(postOwnerId) !== String(userId)) {
+                    const notifPool = await notificationConnection();
+                    await notifPool.request()
+                        .input('Content_Id', sql.BigInt, postIdNum)
+                        .input('Creator_Id', sql.VarChar(26), userId)
+                        .input('User_Id', sql.VarChar(26), postOwnerId)
+                        .input('Type', sql.VarChar(50), 'like')
+                        .query(`
+                            INSERT INTO dbo.NotificationTable (Time, Content_Id, Creator_Id, User_Id, Type, Is_read)
+                            VALUES (GETDATE(), @Content_Id, @Creator_Id, @User_Id, @Type, 0)
+                        `);
+                    console.log(`✅ Notification like: ${userId} → post ${postIdNum} (owner ${postOwnerId})`);
+                }
+            } catch (notifErr) {
+                console.error('⚠️ Lỗi khi tạo notification like:', notifErr);
+            }
             
             res.status(200).json({ 
                 message: 'Đã thích bài viết.',
@@ -158,14 +180,16 @@ const addComment = async (req, res) => {
     try {
         const pool = await connection();
         
-        // Kiểm tra post có tồn tại không
+        // Kiểm tra post có tồn tại không + lấy luôn chủ bài viết
         const postCheck = await pool.request()
             .input('post_id', sql.BigInt, postIdNum)
-            .query('SELECT Post_id FROM [Post] WHERE Post_id = @post_id');
+            .query('SELECT Post_id, user_id FROM [Post] WHERE Post_id = @post_id'); // ✅ thêm user_id
         
         if (postCheck.recordset.length === 0) {
             return res.status(404).json({ error: 'Không tìm thấy bài viết.' });
         }
+
+        const postOwnerId = postCheck.recordset[0].user_id; // ✅ dùng cho notification
         
         // 1. Chèn bình luận mới
         // Sử dụng OUTPUT INTO table variable vì bảng Comment có trigger
@@ -276,6 +300,25 @@ const addComment = async (req, res) => {
             likes_count: likesCount,
             is_liked_by_user: false // Comment mới chưa được like bởi user hiện tại
         };
+
+        // ✅ THÔNG BÁO COMMENT: người khác bình luận bài của tôi
+        try {
+            if (postOwnerId && String(postOwnerId) !== String(userId)) {
+                const notifPool = await notificationConnection();
+                await notifPool.request()
+                    .input('Content_Id', sql.BigInt, postIdNum)
+                    .input('Creator_Id', sql.VarChar(26), userId)
+                    .input('User_Id', sql.VarChar(26), postOwnerId)
+                    .input('Type', sql.VarChar(50), 'comment')
+                    .query(`
+                        INSERT INTO dbo.NotificationTable (Time, Content_Id, Creator_Id, User_Id, Type, Is_read)
+                        VALUES (GETDATE(), @Content_Id, @Creator_Id, @User_Id, @Type, 0)
+                    `);
+                console.log(`✅ Notification comment: ${userId} → post ${postIdNum} (owner ${postOwnerId})`);
+            }
+        } catch (notifErr) {
+            console.error('⚠️ Lỗi khi tạo notification comment:', notifErr);
+        }
         
         res.status(201).json({ message: 'Đã thêm bình luận.', comment: responseComment });
     } catch (error) {

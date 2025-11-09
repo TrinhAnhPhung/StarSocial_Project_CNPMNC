@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom'; 
 import { getImageUrl } from '../utils/imageUtils';
 
 const formatTime = (timestamp) => {
@@ -26,6 +26,8 @@ const NotificationPage = () => {
 
   const token = localStorage.getItem('token');
   const userId = localStorage.getItem('userId');
+
+  const navigate = useNavigate(); 
 
   useEffect(() => {
     const fetchNotifications = async () => {
@@ -86,7 +88,22 @@ const NotificationPage = () => {
     if (!notification.is_read) {
       handleMarkAsRead(notification.id);
     }
-    setExpandedId(expandedId === notification.id ? null : notification.id);
+
+    // Nếu là follow → sang trang profile người đó
+    if (notification.notification_type === 'follow' && notification.actor_id) {
+      navigate(`/profile/${notification.actor_id}`);
+      return;
+    }
+
+    // Nếu có post_id (like, comment, ...) → nhảy về bài viết
+    if (notification.post_id) {
+      // Dùng hash để giống NotificationBell, và để browser tự xử lý
+      window.location.href = `/#post-${notification.post_id}`;
+      return;
+    }
+
+    // Không có link cụ thể → giữ behavior cũ: expand / collapse
+    setExpandedId(prev => (prev === notification.id ? null : notification.id));
   };
 
   // Group notifications
