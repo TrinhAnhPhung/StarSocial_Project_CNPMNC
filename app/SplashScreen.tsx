@@ -1,14 +1,17 @@
 import { useEffect } from 'react';
 import { View, Text } from 'react-native';
+import { useRouter } from 'expo-router';
 
-export default function SplashScreen({ navigation }) {
+export default function SplashScreen() {
+    const router = useRouter();
+    
     useEffect(() => {
         const timer = setTimeout(() => {
-            navigation.replace("Login");
+            router.replace('/Login');
         }, 2000); // 2 giây thôi, không phải 20000 (20 giây)
 
         return () => clearTimeout(timer); // clear khi unmount
-    }, [navigation]);
+    }, [router]);
 
     return (
         <View style={{ flex: 1, alignItems: "center", justifyContent: "center" }}>

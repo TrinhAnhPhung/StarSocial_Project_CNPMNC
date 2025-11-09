@@ -1,14 +1,12 @@
-import { use, useEffect, useState } from "react";
-import { StyleSheet, Text, View, Image, TextInput, TouchableOpacity, Alert, useColorScheme, StatusBar } from "react-native";
+import { useEffect, useState } from "react";
+import { StyleSheet, Text, View, Image, TextInput, TouchableOpacity, Alert, useColorScheme, StatusBar, ActivityIndicator } from "react-native";
 import AppIntroSlider from 'react-native-app-intro-slider';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import Apploading from 'expo-app-loading';
-import { Asset } from 'expo-asset';
 import { COLORS } from "../constants/color";
-import { Link } from "expo-router";
-import { useNavigation } from "expo-router";
+import { Link, useRouter } from "expo-router";
 import { ThemeBar } from "../component/themeBar";
 import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
+import authService from "../services/authService";
 
 const slides = [
   {
@@ -34,12 +32,14 @@ export default function Page() {
   const [showHomePage, setShowHomePage] = useState(false);
   const [showIntro, setShowIntro] = useState<boolean | null>(null);
   const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [loading, setLoading] = useState(false);
   const colorScheme = useColorScheme();
-  const theme = COLORS[colorScheme] ?? COLORS.dark;
-  const navigation = useNavigation();
+  const theme = COLORS[colorScheme ?? 'dark'] ?? COLORS.dark;
+  const router = useRouter();
 
   useEffect(() => {
-    AsyncStorage.getItem('hasSeenIntro').then(value => {
+    AsyncStorage.getItem('hasSeenIntro').then((value: string | null) => {
       if (value === null) {
         setShowIntro(true);
       } else {
@@ -51,6 +51,52 @@ export default function Page() {
   const handleDone = () => {
     AsyncStorage.setItem('hasSeenIntro', 'true');
     setShowHomePage(true);
+  }
+
+  const handleLogin = async () => {
+    // Validation
+    if (!email.trim()) {
+      Alert.alert('Lỗi', 'Vui lòng nhập email');
+      return;
+    }
+
+    if (!password.trim()) {
+      Alert.alert('Lỗi', 'Vui lòng nhập mật khẩu');
+      return;
+    }
+
+    // Email validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      Alert.alert('Lỗi', 'Email không hợp lệ');
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const result = await authService.login(email.trim(), password);
+      
+      if (result.success) {
+        const userData = result.data;
+        const userRole = userData?.role || 'user';
+        
+        // Chuyển hướng dựa trên role
+        if (userRole === 'admin') {
+          // Chuyển đến trang admin
+          router.replace('/AdminDashboard');
+        } else {
+          // Chuyển đến trang home cho người dùng thường
+          router.replace('/Home');
+        }
+      } else {
+        Alert.alert('Lỗi đăng nhập', result.message || 'Đăng nhập thất bại');
+      }
+    } catch (error) {
+      Alert.alert('Lỗi', 'Không thể kết nối đến server. Vui lòng kiểm tra kết nối mạng và đảm bảo backend đang chạy.');
+      console.error('Login error:', error);
+    } finally {
+      setLoading(false);
+    }
   }
   if (showIntro === null) {
     return null; // or a loading spinner
@@ -112,47 +158,53 @@ export default function Page() {
         <ThemeBar />
         <View style={[styles.container, { backgroundColor: theme.background_color }]}>
 
-          <Image source={colorScheme === 'dark' ? require('../assets/logo.png') : require('../assets/logo.png')} style={{ width: 100, height: 100, marginBottom: 20 }} >
-
-          </Image>
+          <Image source={require('../assets/logo.png')} style={{ width: 100, height: 100, marginBottom: 20 }} />
           <Text style={{ fontSize: COLORS.extra_large_font_size, fontWeight: 'bold', marginBottom: 30, marginTop: -10, color: theme.Text_color }}>Welcome to StarSocial</Text>
           <Text style={[styles.lable, { color: theme.Text_color }]}>Gmail</Text>
           <TextInput
-
             placeholder="Enter your email"
+            placeholderTextColor={theme.Text_color + '80'}
+            value={email}
             style={[styles.input, { color: theme.Text_color, borderColor: theme.Text_color }]}
-            onChange={(e) => setEmail(e.nativeEvent.text)}
+            onChangeText={setEmail}
           />
 
           <Text style={[styles.lable, { color: theme.Text_color }]}>Password</Text>
           <TextInput
             placeholder="Enter your Password"
+            placeholderTextColor={theme.Text_color + '80'}
+            value={password}
             secureTextEntry
             style={[styles.input, { color: theme.Text_color, borderColor: theme.Text_color }]}
-            onChange={(e) => setEmail(e.nativeEvent.text)}
+            onChangeText={setPassword}
           />
           <View style={{ flexDirection: 'row', justifyContent: 'space-between', width: '100%' }}>
-            <TouchableOpacity style={{ alignSelf: 'flex-start', marginBottom: 15 }} onPress={() => navigation.navigate('ForgotPassword')}>
+            <TouchableOpacity style={{ alignSelf: 'flex-start', marginBottom: 15 }} onPress={() => router.push('/ForgotPassword')}>
 
               <Text style={[styles.lable, { color: theme.Text_color }]}>I forgot password</Text >
             </TouchableOpacity>
-            <TouchableOpacity style={{ alignSelf: 'flex-end', marginBottom: 15 }} onPress={() => navigation.navigate('Register')}>
+            <TouchableOpacity style={{ alignSelf: 'flex-end', marginBottom: 15 }} onPress={() => router.push('/Register')}>
               <Text style={[styles.lable, { color: theme.Text_color }]}>I don't have account</Text>
 
             </TouchableOpacity>
           </View>
           <TouchableOpacity
             style={{
-              backgroundColor: '#007bff',
+              backgroundColor: loading ? '#ccc' : '#007bff',
               padding: 15,
               borderRadius: 8,
               alignItems: 'center',
               marginBottom: 20,
               width: '100%',
             }}
-            onPress={() => Alert.alert('Register button pressed')}
+            onPress={handleLogin}
+            disabled={loading}
           >
-            <Text style={{ color: "white", fontSize: 18 }}>Login {colorScheme}</Text>
+            {loading ? (
+              <ActivityIndicator color="white" />
+            ) : (
+              <Text style={{ color: "white", fontSize: 18 }}>Login</Text>
+            )}
           </TouchableOpacity>
         </View>
 
