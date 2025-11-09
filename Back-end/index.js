@@ -35,7 +35,36 @@ import adminRoutes from './routes/admin.js';
 const app = express();
 const port = process.env.PORT || 5000;
 
-app.use(cors());
+// ✅ Cấu hình CORS cho phép mobile app kết nối
+const ALLOWED_ORIGINS = ['http://localhost:5173', 'http://localhost:19006', 'exp://localhost:19000'];
+app.use(
+  cors({
+    origin(origin, cb) {
+      // Cho phép: 
+      // - FE dev (localhost:5173)
+      // - Postman/cURL (origin undefined)
+      // - Expo/Mobile apps (origin null, exp://, hoặc http://localhost với các port khác nhau)
+      // - Thiết bị thật kết nối qua IP local (192.168.x.x, 10.0.2.2 cho Android emulator)
+      if (
+        !origin || 
+        ALLOWED_ORIGINS.includes(origin) || 
+        origin.startsWith('exp://') || 
+        origin.startsWith('http://localhost') ||
+        origin.startsWith('http://192.168.') ||
+        origin.startsWith('http://10.0.2.2') || // Android emulator
+        origin.startsWith('http://10.0.0.2')    // iOS simulator trên một số cấu hình
+      ) {
+        return cb(null, true);
+      }
+      console.warn('CORS blocked origin:', origin);
+      return cb(new Error('Not allowed by CORS: ' + origin));
+    },
+    credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
+    exposedHeaders: ['Authorization'],
+  })
+);
 app.use(express.json());
 
 app.use('/uploads', express.static('uploads'));

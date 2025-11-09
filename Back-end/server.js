@@ -23,12 +23,15 @@ app.use(express.json()); // ✅ thay bodyParser.json()
 app.use(express.urlencoded({ extended: true })); // nếu cần parse form urlencoded
 
 /* ------------ CORS ------------ */
-const ALLOWED_ORIGINS = ['http://localhost:5173'];
+const ALLOWED_ORIGINS = ['http://localhost:5173', 'http://localhost:19006', 'exp://localhost:19000'];
 app.use(
   cors({
     origin(origin, cb) {
-      // Cho phép: FE dev, Postman/cURL (origin undefined), file:// (null)
-      if (!origin || ALLOWED_ORIGINS.includes(origin)) return cb(null, true);
+      // Cho phép: FE dev, Postman/cURL (origin undefined), Expo/Mobile apps (origin null hoặc exp://)
+      // Mobile apps thường không có origin hoặc có origin dạng exp://
+      if (!origin || ALLOWED_ORIGINS.includes(origin) || origin.startsWith('exp://') || origin.startsWith('http://localhost')) {
+        return cb(null, true);
+      }
       return cb(new Error('Not allowed by CORS: ' + origin));
     },
     credentials: true,

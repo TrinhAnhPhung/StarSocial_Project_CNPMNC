@@ -82,14 +82,14 @@ const loginUser = async (req, res) => {
       .query(`SELECT TOP 1 * FROM Users WHERE Email = @email`);
 
     const user = result.recordset[0];
-    if (!user) {
-      // ✅ LOG TRACER ĐÃ THÊM
-      console.log(`Lỗi 400: Email không tồn tại (${email})`);
-      return res.status(400).json({ error: 'Email không tồn tại' });
-    }
+    if (!user) {
+      // ✅ LOG TRACER ĐÃ THÊM
+      console.log(`Lỗi 400: Email không tồn tại (${email})`);
+      return res.status(400).json({ success: false, error: 'Email không tồn tại' });
+    }
 
     if (user.isLocked) {
-      return res.status(403).json({ error: 'Tài khoản của bạn đã bị khóa. Vui lòng liên hệ quản trị viên.' });
+      return res.status(403).json({ success: false, error: 'Tài khoản của bạn đã bị khóa. Vui lòng liên hệ quản trị viên.' });
     }
 
     // ✅ LOG CHI TIẾT ĐỂ DEBUG
@@ -102,13 +102,13 @@ const loginUser = async (req, res) => {
     // Kiểm tra Salt có NULL không
     if (!user.Salt || user.Salt === null || user.Salt.trim() === '') {
       console.log(`⚠️  Salt bị NULL hoặc rỗng cho ${email}. Cần cập nhật mật khẩu.`);
-      return res.status(400).json({ error: 'Tài khoản chưa được thiết lập mật khẩu đúng cách. Vui lòng liên hệ quản trị viên.' });
+      return res.status(400).json({ success: false, error: 'Tài khoản chưa được thiết lập mật khẩu đúng cách. Vui lòng liên hệ quản trị viên.' });
     }
 
     // Kiểm tra Password hash có NULL không
     if (!user.Password || user.Password === null || user.Password.trim() === '') {
       console.log(`⚠️  Password hash bị NULL hoặc rỗng cho ${email}. Cần cập nhật mật khẩu.`);
-      return res.status(400).json({ error: 'Tài khoản chưa được thiết lập mật khẩu đúng cách. Vui lòng liên hệ quản trị viên.' });
+      return res.status(400).json({ success: false, error: 'Tài khoản chưa được thiết lập mật khẩu đúng cách. Vui lòng liên hệ quản trị viên.' });
     }
 
     const isMatch = await bcrypt.compare(password + user.Salt, user.Password);
@@ -118,7 +118,7 @@ const loginUser = async (req, res) => {
       console.log(`   - Password nhập vào: ${password}`);
       console.log(`   - Salt trong DB: ${user.Salt}`);
       console.log(`   - Password + Salt: ${password + user.Salt}`);
-      return res.status(400).json({ error: 'Mật khẩu không đúng' });
+      return res.status(400).json({ success: false, error: 'Mật khẩu không đúng' });
     }
 
     // ✅ Normalize role: trim và giữ nguyên giá trị (có thể là "handlereport" hoặc "handle report")
@@ -134,6 +134,7 @@ const loginUser = async (req, res) => {
     // ✅ LOG TRACER ĐÃ THÊM
     console.log(`✅ Đăng nhập thành công cho: ${email} (Role: ${userRole})`);
     res.status(200).json({
+      success: true,
       message: 'Đăng nhập thành công',
       token,
       user: {
@@ -143,10 +144,10 @@ const loginUser = async (req, res) => {
         role: userRole // Gửi role về cho client (đã được normalize)
       },
     });
-  } catch (error) {
-    console.error('❌ Lỗi đăng nhập:', error);
-    res.status(500).json({ error: 'Lỗi server' });
-  }
+  } catch (error) {
+    console.error('❌ Lỗi đăng nhập:', error);
+    res.status(500).json({ success: false, error: 'Lỗi server' });
+  }
 }; // <-- Dấu } này rất quan trọng
 
 /* ============================

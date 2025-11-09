@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { FaStar } from 'react-icons/fa';
 import { HiOutlineDocumentReport } from 'react-icons/hi';
 import { BiBlock } from 'react-icons/bi';
@@ -16,6 +16,23 @@ const navItems = [
 const Sidebar = () => {
   const { pathname } = useLocation(); // Hook để lấy URL hiện tại
   const [showMore, setShowMore] = useState(false);
+  const navigate = useNavigate();
+
+  // Hàm xử lý logout
+  const handleLogout = () => {
+    if (window.confirm('Bạn có chắc chắn muốn đăng xuất?')) {
+      // Xóa tất cả thông tin đăng nhập khỏi localStorage
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
+      localStorage.removeItem('email');
+      localStorage.removeItem('username');
+      localStorage.removeItem('id');
+      localStorage.removeItem('role');
+      
+      // Chuyển hướng về trang login
+      navigate('/login');
+    }
+  };
 
   return (
     <aside className="w-64 bg-white fixed top-0 left-0 bottom-0 border-r shadow-sm flex flex-col justify-between z-50">
@@ -50,12 +67,15 @@ const Sidebar = () => {
         </button>
         {showMore && (
           <div className="absolute bottom-16 left-4 bg-white border shadow-lg rounded w-40 z-10">
-            <button className="flex items-center w-full px-4 py-2 hover:bg-gray-100 text-sm">
+            <button className="flex items-center w-full px-4 py-2 hover:bg-gray-100 text-sm cursor-pointer">
               <FiSettings className="mr-2" /> Settings
             </button>
-           <Link to="/login" className="flex items-center w-full px-4 py-2 hover:bg-gray-100 text-sm text-red-600">
-                         <FiLogOut className="mr-2" /> Logout
-                       </Link>
+            <button 
+              onClick={handleLogout}
+              className="flex items-center w-full px-4 py-2 hover:bg-gray-100 text-sm text-red-600 cursor-pointer"
+            >
+              <FiLogOut className="mr-2" /> Logout
+            </button>
           </div>
         )}
       </div>

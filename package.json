@@ -7,7 +7,8 @@
     "dev": "vite",
     "build": "vite build",
     "lint": "eslint .",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "start": "npm start --prefix Appmobile/Advanced_Software_Engineering_Project"
   },
   "dependencies": {
     "@fortawesome/free-solid-svg-icons": "^7.0.1",
