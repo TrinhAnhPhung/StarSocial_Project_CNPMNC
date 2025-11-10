@@ -141,111 +141,55 @@ class ApiService {
     });
   }
 
-  // Admin APIs
-  async getUsers() {
+  // Post APIs
+  async getPosts() {
     try {
-      const response = await this.request('/admin/users', {
+      const response = await this.request('/posts', {
         method: 'GET',
       });
       return {
         success: true,
-        data: response || [],
+        data: response.posts || response || [],
       };
     } catch (error) {
       return {
         success: false,
-        message: error.message || 'Không thể tải danh sách người dùng',
+        message: error.message || 'Không thể tải bài đăng',
         data: [],
       };
     }
   }
 
-  async createUser(userData) {
+  async likePost(postId) {
     try {
-      const response = await this.request('/admin/users', {
+      const response = await this.request(`/posts/${postId}/like`, {
         method: 'POST',
-        body: {
-          email: userData.email,
-          password: userData.password,
-          first_name: userData.first_name,
-          last_name: userData.last_name,
-          role: userData.role,
-        },
       });
       return {
         success: true,
-        message: response.message || 'Đã tạo người dùng thành công',
-        data: response.user || response,
+        data: response,
       };
     } catch (error) {
       return {
         success: false,
-        message: error.message || 'Không thể tạo người dùng',
+        message: error.message || 'Không thể thích bài đăng',
       };
     }
   }
 
-  async updateUser(userId, userData) {
+  async unlikePost(postId) {
     try {
-      const updateData = {
-        first_name: userData.first_name,
-        last_name: userData.last_name,
-        role: userData.role,
-      };
-      
-      if (userData.password) {
-        updateData.password = userData.password;
-      }
-
-      const response = await this.request(`/admin/users/${userId}`, {
-        method: 'PUT',
-        body: updateData,
+      const response = await this.request(`/posts/${postId}/unlike`, {
+        method: 'POST',
       });
       return {
         success: true,
-        message: response.message || 'Đã cập nhật người dùng thành công',
-        data: response.user || response,
+        data: response,
       };
     } catch (error) {
       return {
         success: false,
-        message: error.message || 'Không thể cập nhật người dùng',
-      };
-    }
-  }
-
-  async deleteUser(userId) {
-    try {
-      const response = await this.request(`/admin/users/${userId}`, {
-        method: 'DELETE',
-      });
-      return {
-        success: true,
-        message: response.message || 'Đã xóa người dùng thành công',
-      };
-    } catch (error) {
-      return {
-        success: false,
-        message: error.message || 'Không thể xóa người dùng',
-      };
-    }
-  }
-
-  async toggleLockUser(userId, isLocked) {
-    try {
-      const response = await this.request(`/admin/users/${userId}/lock`, {
-        method: 'PATCH',
-        body: { isLocked: !isLocked },
-      });
-      return {
-        success: true,
-        message: response.message || `Đã ${isLocked ? 'mở khóa' : 'khóa'} người dùng thành công`,
-        data: response.user || response,
-      };
-    } catch (error) {
-      return {
-        success: false,
-        message: error.message || `Không thể ${isLocked ? 'mở khóa' : 'khóa'} người dùng`,
+        message: error.message || 'Không thể bỏ thích bài đăng',
       };
     }
   }

@@ -77,17 +77,8 @@ export default function Page() {
       const result = await authService.login(email.trim(), password);
       
       if (result.success) {
-        const userData = result.data;
-        const userRole = userData?.role || 'user';
-        
-        // Chuyển hướng dựa trên role
-        if (userRole === 'admin') {
-          // Chuyển đến trang admin
-          router.replace('/AdminDashboard');
-        } else {
-          // Chuyển đến trang home cho người dùng thường
-          router.replace('/Home');
-        }
+        // Luôn chuyển đến trang Home cho tất cả người dùng
+        router.replace('/Home');
       } else {
         Alert.alert('Lỗi đăng nhập', result.message || 'Đăng nhập thất bại');
       }

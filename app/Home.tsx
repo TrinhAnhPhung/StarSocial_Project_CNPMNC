@@ -1,10 +1,13 @@
 import { useState, useEffect } from "react";
-import { StyleSheet, Text, View, TouchableOpacity, ScrollView, useColorScheme, Alert, ActivityIndicator } from "react-native";
+import { StyleSheet, View, Text, useColorScheme, Alert, ActivityIndicator } from "react-native";
 import { useRouter } from "expo-router";
 import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
 import { ThemeBar } from "../component/themeBar";
 import { COLORS } from "../constants/color";
 import authService from "../services/authService";
+import Header from "../component/Header";
+import Feed from "../component/Feed";
+import BottomNavigation from "../component/BottomNavigation";
 
 export default function Home() {
   const [userData, setUserData] = useState<any>(null);
@@ -143,73 +146,18 @@ export default function Home() {
 
   return (
     <SafeAreaProvider style={styles.container}>
-      <SafeAreaView style={[styles.container, { backgroundColor: theme.background_color }]}>
+      <SafeAreaView style={[styles.container, { backgroundColor: theme.background_color }]} edges={['top']}>
         <ThemeBar />
-        <ScrollView style={styles.scrollView}>
-          <View style={styles.content}>
-            <Text style={[styles.title, { color: theme.Text_color }]}>
-              Chào mừng đến StarSocial
-            </Text>
-            
-            {userData && (
-              <View style={[styles.userInfo, { backgroundColor: theme.Text_color + '10', borderColor: theme.Text_color + '30' }]}>
-                <Text style={[styles.userInfoTitle, { color: theme.Text_color }]}>
-                  Thông tin tài khoản
-                </Text>
-                <Text style={[styles.userInfoText, { color: theme.Text_color }]}>
-                  Email: {userData.email}
-                </Text>
-                <Text style={[styles.userInfoText, { color: theme.Text_color }]}>
-                  Họ tên: {userData.full_name || 'Chưa cập nhật'}
-                </Text>
-                <Text style={[styles.userInfoText, { color: theme.Text_color }]}>
-                  Vai trò: {userData.role === 'admin' ? 'Quản trị viên' : userData.role === 'handlereport' ? 'Xử lý báo cáo' : 'Người dùng'}
-                </Text>
-              </View>
-            )}
-
-            <View style={styles.section}>
-              <Text style={[styles.sectionTitle, { color: theme.Text_color }]}>
-                Tính năng
-              </Text>
-              
-              <TouchableOpacity 
-                style={[styles.featureButton, { backgroundColor: '#007bff' }]}
-                onPress={() => Alert.alert('Thông báo', 'Tính năng đang phát triển')}
-              >
-                <Text style={styles.featureButtonText}>📱 Trang chủ</Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity 
-                style={[styles.featureButton, { backgroundColor: '#28a745' }]}
-                onPress={() => Alert.alert('Thông báo', 'Tính năng đang phát triển')}
-              >
-                <Text style={styles.featureButtonText}>👥 Bạn bè</Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity 
-                style={[styles.featureButton, { backgroundColor: '#ffc107' }]}
-                onPress={() => Alert.alert('Thông báo', 'Tính năng đang phát triển')}
-              >
-                <Text style={styles.featureButtonText}>📰 Tin tức</Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity 
-                style={[styles.featureButton, { backgroundColor: '#17a2b8' }]}
-                onPress={() => Alert.alert('Thông báo', 'Tính năng đang phát triển')}
-              >
-                <Text style={styles.featureButtonText}>⚙️ Cài đặt</Text>
-              </TouchableOpacity>
-            </View>
-
-            <TouchableOpacity 
-              style={[styles.logoutButton, { backgroundColor: '#dc3545' }]}
-              onPress={handleLogout}
-            >
-              <Text style={styles.logoutButtonText}>Đăng xuất</Text>
-            </TouchableOpacity>
-          </View>
-        </ScrollView>
+        <Header
+          onNotificationPress={() => Alert.alert('Thông báo', 'Tính năng thông báo đang phát triển')}
+          onChatPress={() => Alert.alert('Tin nhắn', 'Tính năng tin nhắn đang phát triển')}
+        />
+        <View style={styles.feedContainer}>
+          <Feed />
+        </View>
+        <SafeAreaView edges={['bottom']}>
+          <BottomNavigation userAvatar={userData?.avatar || userData?.profile_picture} />
+        </SafeAreaView>
       </SafeAreaView>
     </SafeAreaProvider>
   );
@@ -219,62 +167,8 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
-  scrollView: {
+  feedContainer: {
     flex: 1,
-  },
-  content: {
-    padding: 20,
-  },
-  title: {
-    fontSize: COLORS.extra_large_font_size,
-    fontWeight: 'bold',
-    marginBottom: 20,
-    textAlign: 'center',
-  },
-  userInfo: {
-    padding: 15,
-    borderRadius: 10,
-    marginBottom: 20,
-    borderWidth: 1,
-  },
-  userInfoTitle: {
-    fontSize: COLORS.large_font_size,
-    fontWeight: 'bold',
-    marginBottom: 10,
-  },
-  userInfoText: {
-    fontSize: COLORS.medium_font_size,
-    marginBottom: 5,
-  },
-  section: {
-    marginBottom: 20,
-  },
-  sectionTitle: {
-    fontSize: COLORS.large_font_size,
-    fontWeight: 'bold',
-    marginBottom: 15,
-  },
-  featureButton: {
-    padding: 15,
-    borderRadius: 8,
-    marginBottom: 10,
-    alignItems: 'center',
-  },
-  featureButtonText: {
-    color: 'white',
-    fontSize: COLORS.medium_font_size,
-    fontWeight: 'bold',
-  },
-  logoutButton: {
-    padding: 15,
-    borderRadius: 8,
-    alignItems: 'center',
-    marginTop: 20,
-  },
-  logoutButtonText: {
-    color: 'white',
-    fontSize: COLORS.medium_font_size,
-    fontWeight: 'bold',
   },
 });
 

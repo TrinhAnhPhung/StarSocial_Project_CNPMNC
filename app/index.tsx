@@ -10,7 +10,6 @@ import React from "react";
 export default function App() {
     const [showFlashScreen, setShowFlashScreen] = useState(true);
     const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
-    const [userRole, setUserRole] = useState<string | null>(null);
     const fadeAnim = useRef(new Animated.Value(1)).current;
     const router = useRouter();
 
@@ -22,18 +21,10 @@ export default function App() {
         try {
             const authenticated = await authService.isAuthenticated();
             console.log('🔍 index.tsx: Kết quả authentication:', authenticated);
-            if (authenticated) {
-                const userData = await authService.getUserData();
-                setUserRole(userData?.role || 'user');
-                console.log('🔍 index.tsx: User role:', userData?.role);
-            } else {
-                setUserRole(null);
-            }
             setIsAuthenticated(authenticated);
         } catch (error) {
             console.error('❌ index.tsx: Lỗi khi kiểm tra authentication:', error);
             setIsAuthenticated(false);
-            setUserRole(null);
         }
     };
 
@@ -104,12 +95,8 @@ export default function App() {
     }
 
     if (isAuthenticated) {
-        // Redirect to appropriate page based on role
-        if (userRole === 'admin') {
-            return <Redirect href="/AdminDashboard" />;
-        } else {
-            return <Redirect href="/Home" />;
-        }
+        // Luôn chuyển đến trang Home cho tất cả người dùng
+        return <Redirect href="/Home" />;
     }
 
     // Redirect to Login screen if not authenticated
