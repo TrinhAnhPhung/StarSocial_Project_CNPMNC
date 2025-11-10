@@ -351,6 +351,7 @@ const getComments = async (req, res) => {
     try {
         const pool = await connection();
         
+        // Query cơ bản - lấy comments trước
         let commentsQuery = `
             SELECT 
                 c.Comment_id as id,
@@ -361,26 +362,7 @@ const getComments = async (req, res) => {
                 u.Email as username,
                 u.Profile_Picture as profile_picture_url,
                 u.First_Name,
-                u.Last_name,
-                (SELECT COUNT(*) FROM [CommentLike] WHERE [CommentLike].Comment_id = c.Comment_id) as likes_count
-        `;
-
-        // Thêm is_liked_by_user nếu có user đăng nhập
-        if (userId) {
-            commentsQuery += `,
-                CASE 
-                    WHEN EXISTS (
-                        SELECT 1 FROM [CommentLike] 
-                        WHERE [CommentLike].Comment_id = c.Comment_id AND [CommentLike].User_id = @user_id
-                    ) THEN 1 
-                    ELSE 0 
-                END as is_liked_by_user
-            `;
-        } else {
-            commentsQuery += `, 0 as is_liked_by_user`;
-        }
-
-        commentsQuery += `
+                u.Last_name
             FROM [Comment] c
             JOIN Users u ON c.user_id = u.User_id
             WHERE c.post_id = @post_id
@@ -390,22 +372,107 @@ const getComments = async (req, res) => {
         const request = pool.request()
             .input('post_id', sql.BigInt, postIdNum);
         
-        if (userId) {
-            request.input('user_id', sql.VarChar(26), userId);
-        }
-        
-        const result = await request.query(commentsQuery);
+        let result;
+        try {
+            // Thử query với tên cột chữ hoa
+            result = await request.query(commentsQuery);
+        } catch (queryError) {
+            // Nếu lỗi, thử với tên cột chữ thường
+            console.warn("⚠️ Thử query với tên cột chữ thường:", queryError.message);
+            
+            commentsQuery = `
+                SELECT 
+                    c.comment_id as id,
+                    c.content,
+                    c.time as created_at,
+                    c.user_id,
+                    c.post_id,
+                    u.Email as username,
+                    u.Profile_Picture as profile_picture_url,
+                    u.First_Name,
+                    u.Last_name
+                FROM [Comment] c
+                JOIN Users u ON c.user_id = u.User_id
+                WHERE c.post_id = @post_id
+                ORDER BY c.time DESC
+            `;
 
-        const comments = result.recordset.map(comment => ({
-            id: comment.id,
-            content: comment.content,
-            created_at: comment.created_at,
-            user_id: comment.user_id,
-            post_id: comment.post_id,
-            username: comment.username || `${comment.First_Name} ${comment.Last_name}`.trim(),
-            profile_picture_url: comment.profile_picture_url || null,
-            likes_count: parseInt(comment.likes_count) || 0,
-            is_liked_by_user: comment.is_liked_by_user === 1 || comment.is_liked_by_user === true
+            result = await request.query(commentsQuery);
+        }
+
+        // Lấy likes_count và is_liked_by_user cho từng comment
+        const comments = await Promise.all(result.recordset.map(async (comment) => {
+            let likesCount = 0;
+            let isLikedByUser = false;
+
+            // Thử lấy likes_count từ bảng CommentLike
+            try {
+                // Thử với tên cột chữ hoa
+                const likesQuery = `
+                    SELECT COUNT(*) as count
+                    FROM [CommentLike]
+                    WHERE Comment_id = @comment_id
+                `;
+                const likesResult = await pool.request()
+                    .input('comment_id', sql.BigInt, comment.id)
+                    .query(likesQuery);
+                likesCount = parseInt(likesResult.recordset[0]?.count) || 0;
+
+                // Kiểm tra is_liked_by_user nếu có userId
+                if (userId) {
+                    const isLikedQuery = `
+                        SELECT COUNT(*) as count
+                        FROM [CommentLike]
+                        WHERE Comment_id = @comment_id AND User_id = @user_id
+                    `;
+                    const isLikedResult = await pool.request()
+                        .input('comment_id', sql.BigInt, comment.id)
+                        .input('user_id', sql.VarChar(26), userId)
+                        .query(isLikedQuery);
+                    isLikedByUser = parseInt(isLikedResult.recordset[0]?.count) > 0;
+                }
+            } catch (likesError) {
+                // Nếu lỗi, thử với tên cột chữ thường
+                try {
+                    const likesQuery = `
+                        SELECT COUNT(*) as count
+                        FROM [CommentLike]
+                        WHERE comment_id = @comment_id
+                    `;
+                    const likesResult = await pool.request()
+                        .input('comment_id', sql.BigInt, comment.id)
+                        .query(likesQuery);
+                    likesCount = parseInt(likesResult.recordset[0]?.count) || 0;
+
+                    if (userId) {
+                        const isLikedQuery = `
+                            SELECT COUNT(*) as count
+                            FROM [CommentLike]
+                            WHERE comment_id = @comment_id AND user_id = @user_id
+                        `;
+                        const isLikedResult = await pool.request()
+                            .input('comment_id', sql.BigInt, comment.id)
+                            .input('user_id', sql.VarChar(26), userId)
+                            .query(isLikedQuery);
+                        isLikedByUser = parseInt(isLikedResult.recordset[0]?.count) > 0;
+                    }
+                } catch (likesError2) {
+                    // Bảng CommentLike có thể không tồn tại - giữ nguyên likesCount = 0
+                    console.warn(`⚠️ Không thể lấy likes cho comment ${comment.id}:`, likesError2.message);
+                }
+            }
+
+            return {
+                id: comment.id,
+                content: comment.content,
+                created_at: comment.created_at,
+                user_id: comment.user_id,
+                post_id: comment.post_id,
+                username: comment.username || `${comment.First_Name} ${comment.Last_name}`.trim(),
+                profile_picture_url: comment.profile_picture_url || null,
+                likes_count: likesCount,
+                is_liked_by_user: isLikedByUser
+            };
         }));
 
         res.status(200).json({ comments });

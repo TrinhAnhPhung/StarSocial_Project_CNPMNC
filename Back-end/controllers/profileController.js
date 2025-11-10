@@ -23,7 +23,9 @@ const getMe = async (req, res) => {
                     First_Name + ' ' + Last_name AS full_name,
                     Email, Profile_Picture, Description AS bio, Role,
                     CONVERT(varchar, Date_Of_Birth, 23) AS Date_Of_Birth,
-                    Quantities_Posts AS postsCount,
+                    
+                    -- ✅ SỬA LỖI: Tính toán động số lượng Posts
+                    (SELECT COUNT(*) FROM [Post] WHERE User_id = Users.User_id) AS postsCount,
                     
                     -- ✅ SỬA LỖI: Tính toán động số lượng Followers
                     (SELECT COUNT(*) FROM Follow WHERE FamousUser_id = Users.User_id) AS followersCount,
@@ -63,7 +65,9 @@ const getProfileInfo = async (req, res) => {
                     First_Name + ' ' + Last_name AS full_name,
                     Email,
                     Description AS bio, 
-                    Quantities_Posts AS postsCount,
+                    
+                    -- ✅ SỬA LỖI: Tính toán động số lượng Posts
+                    (SELECT COUNT(*) FROM [Post] WHERE User_id = Users.User_id) AS postsCount,
                     
                     -- ✅ SỬA LỖI: Tính toán động số lượng Followers
                     (SELECT COUNT(*) FROM Follow WHERE FamousUser_id = Users.User_id) AS followersCount,
@@ -153,7 +157,9 @@ const getUserProfile = async (req, res) => {
                         Description AS bio, 
                         Role,
                         CONVERT(varchar, Date_Of_Birth, 23) AS Date_Of_Birth,
-                        Quantities_Posts AS postsCount,
+                        
+                        -- ✅ SỬA LỖI: Tính toán động số lượng Posts
+                        (SELECT COUNT(*) FROM [Post] WHERE User_id = Users.User_id) AS postsCount,
                         
                         -- Tính toán động số lượng Followers
                         (SELECT COUNT(*) FROM Follow WHERE FamousUser_id = Users.User_id) AS followersCount,
@@ -178,7 +184,9 @@ const getUserProfile = async (req, res) => {
                         Description AS bio, 
                         Role,
                         CONVERT(varchar, Date_Of_Birth, 23) AS Date_Of_Birth,
-                        Quantities_Posts AS postsCount,
+                        
+                        -- ✅ SỬA LỖI: Tính toán động số lượng Posts
+                        (SELECT COUNT(*) FROM [Post] WHERE User_id = Users.User_id) AS postsCount,
                         
                         -- Tính toán động số lượng Followers
                         (SELECT COUNT(*) FROM Follow WHERE FamousUser_id = Users.User_id) AS followersCount,
@@ -268,7 +276,9 @@ const updateMe = async (req, res) => {
                     First_Name + ' ' + Last_name AS full_name,
                     Email, Profile_Picture, Description AS bio, Role,
                     CONVERT(varchar, Date_Of_Birth, 23) AS Date_Of_Birth,
-                    Quantities_Posts AS postsCount,
+                    
+                    -- ✅ SỬA LỖI: Tính toán động số lượng Posts
+                    (SELECT COUNT(*) FROM [Post] WHERE User_id = Users.User_id) AS postsCount,
                     
                     -- ✅ SỬA LỖI: Tính toán động số lượng Followers
                     (SELECT COUNT(*) FROM Follow WHERE FamousUser_id = Users.User_id) AS followersCount,
@@ -335,7 +345,9 @@ const updateProfilePicture = async (req, res) => {
                     First_Name + ' ' + Last_name AS full_name,
                     Email, Profile_Picture, Description AS bio, Role,
                     CONVERT(varchar, Date_Of_Birth, 23) AS Date_Of_Birth,
-                    Quantities_Posts AS postsCount,
+                    
+                    -- ✅ SỬA LỖI: Tính toán động số lượng Posts
+                    (SELECT COUNT(*) FROM [Post] WHERE User_id = Users.User_id) AS postsCount,
                     
                     -- ✅ SỬA LỖI: Tính toán động số lượng Followers
                     (SELECT COUNT(*) FROM Follow WHERE FamousUser_id = Users.User_id) AS followersCount,

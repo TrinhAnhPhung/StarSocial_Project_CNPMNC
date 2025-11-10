@@ -2,7 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 // 1. Import Modal (Xóa 'Link')
 import EditProfileModal from './EditProfileModal';
-import PostDetailModal from './PostDetailModal'; 
+import PostDetailModal from './PostDetailModal';
+import { getImageUrl } from '../utils/imageUtils'; 
 
 // Không cần dữ liệu giả lập nữa, sẽ fetch từ API
 
@@ -224,12 +225,17 @@ const Profile = () => {
 
         {/* Header Profile */}
         <div className="flex items-center justify-between mb-8">
-          <div className="flex items-center space-x-4">
-            <img
-              src={profileImage || 'https://via.placeholder.com/150'}
-              alt="Profile Avatar"
-              className="w-24 h-24 rounded-full object-cover border border-gray-200"
-            />
+          <div className="flex items-center space-x-4">
+            <img
+              src={getImageUrl(profileImage, linkBackend)}
+              alt="Profile Avatar"
+              className="w-24 h-24 rounded-full object-cover border border-gray-200"
+              onError={(e) => {
+                // Nếu ảnh không load được, dùng default avatar
+                e.target.onerror = null;
+                e.target.src = 'https://ui-avatars.com/api/?name=User&background=random&size=128';
+              }}
+            />
             <div>
               <h1 className="text-3xl font-bold">{userProfile.full_name}</h1>
               {/* Sửa: Hiển thị Email (vì username không có trong API) */}
@@ -320,22 +326,28 @@ const Profile = () => {
                     {post.image_url ? (
                       <>
                         <img
-                          src={`${linkBackend}${post.image_url}`}
+                          src={getImageUrl(post.image_url, linkBackend)}
                           alt={post.caption || "Post image"}
                           className="w-full h-full object-cover"
                           loading="lazy"
                           style={{ display: 'block', minHeight: '100%' }}
                           onError={(e) => {
-                            console.error('❌ Error loading image:', {
-                              url: `${linkBackend}${post.image_url}`,
-                              original_url: post.image_url,
-                              post_id: post.id
-                            });
+                            // Chỉ log lỗi trong development mode
+                            if (import.meta.env.DEV) {
+                              console.warn('⚠️ Không thể tải ảnh bài viết:', {
+                                url: getImageUrl(post.image_url, linkBackend),
+                                original_url: post.image_url,
+                                post_id: post.id
+                              });
+                            }
                             e.target.onerror = null;
                             e.target.style.display = 'none';
                           }}
                           onLoad={() => {
-                            console.log('✅ Image loaded:', `${linkBackend}${post.image_url}`);
+                            // Chỉ log trong development mode
+                            if (import.meta.env.DEV) {
+                              console.log('✅ Image loaded:', getImageUrl(post.image_url, linkBackend));
+                            }
                           }}
                         />
                         {/* Overlay chỉ hiển thị khi hover */}
@@ -426,12 +438,19 @@ const Profile = () => {
                   >
                     {post.image_url ? (
                       <img
-                        src={`${linkBackend}${post.image_url}`}
+                        src={getImageUrl(post.image_url, linkBackend)}
                         alt={post.caption || "Post image"}
                         className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                         loading="lazy"
                         onError={(e) => {
-                          console.error('Error loading image:', `${linkBackend}${post.image_url}`);
+                          // Chỉ log lỗi trong development mode
+                          if (import.meta.env.DEV) {
+                            console.warn('⚠️ Không thể tải ảnh bài viết:', {
+                              url: getImageUrl(post.image_url, linkBackend),
+                              original_url: post.image_url,
+                              post_id: post.id
+                            });
+                          }
                           e.target.onerror = null;
                           e.target.src = 'https://via.placeholder.com/400?text=Image+Error';
                         }}

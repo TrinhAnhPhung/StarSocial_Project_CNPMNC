@@ -112,8 +112,8 @@ const CreatePost = () => {
             navigate("/");  // Redirect to homepage after success
         } catch (err) {
             console.error("Error sharing post:", err);
-            // Hiển thị lỗi từ backend nếu có (VD: 401, 403)
-            const errorMessage = err.response?.data?.error || "An error occurred while sharing the post!";
+            // Hiển thị lỗi từ backend nếu có (VD: 401, 403, 500)
+            const errorMessage = err.response?.data?.error || err.response?.data?.message || err.message || "An error occurred while sharing the post!";
             alert(errorMessage);
         }
     };
@@ -222,6 +222,7 @@ const CreatePost = () => {
                                     accept="image/*"
                                     onChange={handleFileChange}
                                     className="hidden"
+                                    key={selectedFile ? 'file-selected' : 'no-file'} // Force re-render để tránh warning
                                 />
                             </div>
                         </>

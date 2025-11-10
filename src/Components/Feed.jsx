@@ -122,7 +122,7 @@ const Feed = () => {
     };
 
     return (
-        <div className="feed-container">
+        <div className="feed-container w-full max-w-2xl mx-auto px-2 sm:px-4 pb-16 md:pb-4">
             <InfiniteScroll
                 dataLength={posts.length}
                 next={fetchPosts}

@@ -91,6 +91,9 @@ const PostCard = ({ post, onPostDeleted, onPostUpdated }) => {
   const [editHashtags, setEditHashtags] = useState(post.hashtags || '');
   const [isUpdating, setIsUpdating] = useState(false);
   const [currentUserId, setCurrentUserId] = useState(null);
+  const [imageError, setImageError] = useState(false);
+  const [videoError, setVideoError] = useState(false);
+  const [expandedCaption, setExpandedCaption] = useState(false);
   const menuRef = useRef(null);
 
   const linkBackend = import.meta.env.VITE_Link_backend || 'http://localhost:5000';
@@ -108,6 +111,12 @@ const PostCard = ({ post, onPostDeleted, onPostUpdated }) => {
       }
     }
   }, []);
+
+  // Reset error states when post changes
+  useEffect(() => {
+    setImageError(false);
+    setVideoError(false);
+  }, [post.id, post.image_url, post.video_url]);
 
   // Kiểm tra xem user hiện tại có phải chủ sở hữu bài viết không
   const isPostOwner = currentUserId && post.user_id && String(currentUserId) === String(post.user_id);
@@ -377,15 +386,49 @@ const PostCard = ({ post, onPostDeleted, onPostUpdated }) => {
     };
   }, []);
 
+  // Xử lý URL hình ảnh
+  const getImageUrl = (imageUrl) => {
+    if (!imageUrl || imageUrl === 'null' || imageUrl === 'undefined' || imageUrl.trim() === '') {
+      return null;
+    }
+    const url = String(imageUrl).trim();
+    if (url.startsWith('http://') || url.startsWith('https://')) {
+      return url;
+    }
+    if (url.startsWith('/uploads/') || url.startsWith('/')) {
+      return `${linkBackend}${url}`;
+    }
+    return `${linkBackend}/uploads/${url}`;
+  };
+
+  // Xử lý URL video
+  const getVideoUrl = (videoUrl) => {
+    if (!videoUrl || videoUrl === 'null' || videoUrl === 'undefined' || videoUrl.trim() === '') {
+      return null;
+    }
+    const url = String(videoUrl).trim();
+    if (url.startsWith('http://') || url.startsWith('https://')) {
+      return url;
+    }
+    if (url.startsWith('/uploads/') || url.startsWith('/')) {
+      return `${linkBackend}${url}`;
+    }
+    return `${linkBackend}/uploads/${url}`;
+  };
+
   const postTime = formatDistanceToNowStrict(new Date(post.created_at), {
     locale: vi,
     addSuffix: true,
   });
 
+  // Lấy URL hình ảnh và video đã được xử lý
+  const imageUrl = getImageUrl(post.image_url);
+  const videoUrl = getVideoUrl(post.video_url);
+
   // --- JSX GIỮ NGUYÊN ---
   return (
-    <div className="bg-white max-w-lg mx-auto border-b border-gray-200 pb-4 mb-6">
-      <div className="px-4 py-3 flex justify-between items-center">
+    <div className="bg-white max-w-lg mx-auto border-b border-gray-200 pb-4 mb-6 w-full">
+      <div className="px-2 sm:px-4 py-3 flex justify-between items-center">
         <Link to={`/profile/${post.user_id || post.Email || post.username}`} className="flex items-center gap-3">
           <img
             src={(() => {
@@ -449,25 +492,122 @@ const PostCard = ({ post, onPostDeleted, onPostUpdated }) => {
         )}
       </div>
 
-      {post.image_url && (
+      {/* Caption hiển thị dưới avatar, trước hình ảnh */}
+      {post.caption && (
+        <div className="px-2 sm:px-4 py-3">
+          <p className={`text-gray-900 font-semibold text-base sm:text-lg leading-relaxed ${!expandedCaption && post.caption.length > 100 ? 'line-clamp-2' : ''}`}>
+            <Link to={`/profile/${post.user_id || post.Email || post.username}`} className="font-bold hover:underline">
+              {post.full_name || post.First_Name + ' ' + post.Last_name || post.username}
+            </Link>
+            {' '}
+            <span>{post.caption}</span>
+          </p>
+          {post.caption.length > 100 && (
+            <button
+              onClick={() => setExpandedCaption(!expandedCaption)}
+              className="text-gray-500 hover:text-gray-700 text-sm font-medium mt-1"
+            >
+              {expandedCaption ? 'Thu gọn' : 'Xem thêm'}
+            </button>
+          )}
+          {post.hashtags && (
+            <div className="flex flex-wrap gap-x-2 mt-2">
+              {post.hashtags.split(' ').filter(tag => tag.trim()).map((tag, index) => (
+                <Link key={index} to={`/hashtags/${tag.replace('#','')}`} className="text-blue-500 hover:underline font-medium text-sm">
+                  #{tag.replace('#','')}
+                </Link>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {imageUrl && !imageError && (
         <img
-          src={`${linkBackend}${post.image_url}`}
+          src={imageUrl}
           alt="Nội dung bài viết"
           className="w-full h-auto object-cover"
+          loading="lazy"
+          onError={(e) => {
+            // Chỉ log lỗi trong development mode
+            if (import.meta.env.DEV) {
+              console.warn('⚠️ Không thể tải ảnh bài viết (có thể đã được migrate lên Cloudinary):', {
+                url: imageUrl,
+                original_url: post.image_url,
+                post_id: post.id
+              });
+            }
+            e.target.onerror = null;
+            setImageError(true);
+          }}
+          onLoad={() => {
+            // Chỉ log trong development mode
+            if (import.meta.env.DEV) {
+              console.log('✅ Post image loaded:', imageUrl);
+            }
+          }}
         />
       )}
-      {post.video_url && (
+      {imageUrl && imageError && (
+        <div className="w-full bg-gray-100 flex items-center justify-center py-20">
+          <div className="text-center">
+            <svg className="w-12 h-12 mx-auto text-gray-400 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+            </svg>
+            <p className="text-gray-400 text-sm">Không thể tải hình ảnh</p>
+            <button
+              onClick={() => {
+                setImageError(false);
+              }}
+              className="mt-2 text-blue-500 text-xs hover:underline"
+            >
+              Thử lại
+            </button>
+          </div>
+        </div>
+      )}
+      {videoUrl && !videoError && (
         <video
-          src={`${linkBackend}${post.video_url}`}
+          src={videoUrl}
           controls
           className="w-full h-auto object-cover"
+          onError={(e) => {
+            // Chỉ log lỗi trong development mode
+            if (import.meta.env.DEV) {
+              console.warn('⚠️ Không thể tải video bài viết (có thể đã được migrate lên Cloudinary):', {
+                url: videoUrl,
+                original_url: post.video_url,
+                post_id: post.id
+              });
+            }
+            e.target.onerror = null;
+            setVideoError(true);
+          }}
         >
           Trình duyệt của bạn không hỗ trợ video.
         </video>
       )}
+      {videoUrl && videoError && (
+        <div className="w-full bg-gray-100 flex items-center justify-center py-20">
+          <div className="text-center">
+            <svg className="w-12 h-12 mx-auto text-gray-400 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
+            </svg>
+            <p className="text-gray-400 text-sm">Không thể tải video</p>
+            <button
+              onClick={() => {
+                setVideoError(false);
+              }}
+              className="mt-2 text-blue-500 text-xs hover:underline"
+            >
+              Thử lại
+            </button>
+          </div>
+        </div>
+      )}
 
-      <div className="px-4 pt-4 pb-2 flex justify-between items-center">
-        <div className="flex items-center gap-4">
+      <div className="px-2 sm:px-4 pt-4 pb-2 flex justify-between items-center">
+        <div className="flex items-center gap-2 sm:gap-4">
           <button onClick={handleLike} className="focus:outline-none">
             <HeartIcon isLiked={isLiked} />
           </button>
@@ -479,29 +619,12 @@ const PostCard = ({ post, onPostDeleted, onPostUpdated }) => {
         <button className="focus:outline-none"><BookmarkIcon /></button>
       </div>
 
-      <div className="px-4 pb-2">
+      <div className="px-2 sm:px-4 pb-2">
         <p className="font-semibold text-sm">{likeCount.toLocaleString('en-US')} lượt thích</p>
       </div>
 
-      <div className="px-4 text-base">
-        <p className="leading-relaxed">
-          <Link to={`/profile/${post.user_id || post.Email || post.username}`} className="font-bold mr-2 hover:underline">
-            {post.full_name || post.First_Name + ' ' + post.Last_name || post.username}
-          </Link>
-          <span className="text-gray-900">{post.caption}</span>
-        </p>
-        {post.hashtags && (
-          <div className="flex flex-wrap gap-x-2 mt-2">
-            {post.hashtags.split(' ').filter(tag => tag.trim()).map((tag, index) => (
-              <Link key={index} to={`/hashtags/${tag.replace('#','')}`} className="text-blue-500 hover:underline font-medium">
-                #{tag.replace('#','')}
-              </Link>
-            ))}
-          </div>
-        )}
-      </div>
 
-      <div className="px-4 pt-2 text-sm">
+      <div className="px-2 sm:px-4 pt-2 text-sm">
         {commentsCount > 0 && (
           <button onClick={handleToggleComments} className="text-gray-500 hover:text-gray-700">
             Xem tất cả {commentsCount} bình luận
@@ -510,7 +633,7 @@ const PostCard = ({ post, onPostDeleted, onPostUpdated }) => {
       </div>
 
       {showComments && (
-        <div className="px-4 pt-4 mt-2 border-t border-gray-100">
+        <div className="px-2 sm:px-4 pt-4 mt-2 border-t border-gray-100">
           {isLoadingComments ? (
             <div className="text-center py-4">
               <p className="text-xs text-gray-500">Đang tải bình luận...</p>

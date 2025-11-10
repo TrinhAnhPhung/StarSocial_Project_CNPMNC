@@ -20,7 +20,7 @@ const storage = multer.memoryStorage();
 // 'profileImage' là tên của trường (field name) mà frontend sẽ gửi
 const upload = multer({ storage: storage }).single('profileImage');
 
-// 4. Hàm helper để upload file buffer lên Cloudinary
+// 4. Hàm helper để upload file buffer lên Cloudinary (cho profile picture)
 const uploadToCloudinary = (fileBuffer, userId) => {
     return new Promise((resolve, reject) => {
         
@@ -49,4 +49,49 @@ const uploadToCloudinary = (fileBuffer, userId) => {
     });
 };
 
-export { upload, uploadToCloudinary };
+// 5. Hàm helper để upload file buffer lên Cloudinary (cho posts - ảnh/video)
+const uploadPostToCloudinary = (fileBuffer, postId, isImage = true) => {
+    return new Promise((resolve, reject) => {
+        const timestamp = Date.now();
+        const folder = isImage ? 'posts/images' : 'posts/videos';
+        // public_id chỉ chứa tên file, không bao gồm folder
+        // Loại bỏ ký tự đặc biệt để tránh lỗi
+        const public_id = `post_${postId}_${timestamp}`;
+
+        // Cấu hình upload đơn giản - Cloudinary tự động phát hiện format và tối ưu
+        const uploadOptions = {
+            folder: folder,
+            public_id: public_id,
+            overwrite: false,
+            resource_type: isImage ? 'image' : 'video',
+            // Không dùng transformation khi upload, chỉ upload file gốc
+        };
+
+        console.log(`📤 Cloudinary upload options:`, {
+            folder: uploadOptions.folder,
+            public_id: uploadOptions.public_id,
+            resource_type: uploadOptions.resource_type
+        });
+
+        const uploadStream = cloudinary.uploader.upload_stream(
+            uploadOptions, 
+            (error, result) => {
+                if (error) {
+                    console.error('❌ Lỗi khi upload lên Cloudinary:', {
+                        message: error.message,
+                        http_code: error.http_code,
+                        name: error.name
+                    });
+                    return reject(error);
+                }
+                console.log(`✅ Upload thành công lên Cloudinary: ${result.secure_url}`);
+                resolve(result); // Trả về kết quả (chứa secure_url)
+            }
+        );
+
+        // Gửi file buffer vào stream
+        streamifier.createReadStream(fileBuffer).pipe(uploadStream);
+    });
+};
+
+export { upload, uploadToCloudinary, uploadPostToCloudinary };

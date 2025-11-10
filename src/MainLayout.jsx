@@ -63,37 +63,49 @@ const MainLayout = () => {
   }
   // --- HẾT PHẦN CODE MỚI ---
 
-  return (
-    <>
-      {isPopup ? (
-        <div className="flex bg-white-900">
-          <div className="sticky top-0 w-64 h-screen">
-            <Sidebar />
-          </div>
-          <div className="flex-1 p-4">
-            {/* Truyền user xuống cho mọi component con (ChatModal, Feed...) */}
-            <Outlet context={{ user }} />
-          </div>
-          <div className="sticky top-0 w-1/4 bg-white-800 p-4 text-white h-screen overflow-auto">
-            <TopCreators />
-          </div>
-        </div>
-      ) : (
-        <div className="flex bg-white-900">
-          <div className="sticky top-0 w-20 h-screen">
-            <Sidebar />
-          </div>
-          <div className="flex-1 p-0 ">
-            {/* Truyền user xuống cho mọi component con (ChatModal, Feed...) */}
-            <Outlet context={{ user }} />
-          </div>
-          <div className="sticky top-0 w-1/4 bg-white-800 p-4 text-white h-screen overflow-auto hidden">
-            <TopCreators />
-          </div>
-        </div>
-      )}
-    </>
-  );
+  return (
+    <>
+      {isPopup ? (
+        <div className="flex bg-white-900">
+          {/* Sidebar - ẩn trên mobile, hiển thị trên tablet+ */}
+          <div className="hidden md:block sticky top-0 w-64 h-screen z-30">
+            <Sidebar />
+          </div>
+          {/* Main content - full width trên mobile */}
+          <div className="flex-1 p-2 md:p-4 w-full min-w-0">
+            {/* Truyền user xuống cho mọi component con (ChatModal, Feed...) */}
+            <Outlet context={{ user }} />
+          </div>
+          {/* Right sidebar - ẩn trên mobile và tablet, hiển thị trên desktop */}
+          <div className="hidden lg:block sticky top-0 w-1/4 bg-white-800 p-4 text-white h-screen overflow-auto">
+            <TopCreators />
+          </div>
+        </div>
+      ) : (
+        <div className="flex bg-white-900">
+          {/* Sidebar - ẩn trên mobile, hiển thị trên tablet+ */}
+          <div className="hidden md:block sticky top-0 w-20 h-screen z-30">
+            <Sidebar />
+          </div>
+          {/* Main content - full width trên mobile */}
+          <div className="flex-1 p-0 w-full min-w-0">
+            {/* Truyền user xuống cho mọi component con (ChatModal, Feed...) */}
+            <Outlet context={{ user }} />
+          </div>
+          {/* Right sidebar - ẩn trên mobile và tablet */}
+          <div className="hidden lg:block sticky top-0 w-1/4 bg-white-800 p-4 text-white h-screen overflow-auto">
+            <TopCreators />
+          </div>
+        </div>
+      )}
+      {/* Mobile bottom navigation - chỉ hiển thị trên mobile */}
+      <div className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 z-50 pb-safe">
+        <Sidebar />
+      </div>
+      {/* Padding bottom cho mobile để tránh content bị che bởi bottom nav */}
+      <div className="md:hidden h-16"></div>
+    </>
+  );
 };
 
 export default MainLayout;

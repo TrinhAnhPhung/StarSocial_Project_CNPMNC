@@ -79,10 +79,80 @@ const Sidebar = () => {
         { name: "Create", path: "/create-post", icon: "add_circle_outline", requiresAuth: true },
         { name: "Profile", path: "/profile", icon: null, requiresAuth: true },
     ];
+
+    // Mobile bottom navigation items (chỉ hiển thị một số items quan trọng)
+    const mobileMenuItems = [
+        { name: "Home", path: "/", icon: "home", requiresAuth: false },
+        { name: "Explore", path: "/explore", icon: "explore", requiresAuth: false },
+        { name: "Create", path: "/create-post", icon: "add_circle_outline", requiresAuth: true },
+        { name: "Notifications", path: "/notification", icon: "notifications", requiresAuth: true },
+        { name: "Profile", path: "/profile", icon: null, requiresAuth: true },
+    ];
+
+    // Kiểm tra nếu đang render mobile bottom nav (dựa vào parent class)
+    const isMobileNav = typeof window !== 'undefined' && window.innerWidth < 768;
+
+    // Kiểm tra nếu đang trong mobile bottom nav context
+    const isMobileBottomNav = typeof window !== 'undefined' && window.innerWidth < 768 && 
+        document.querySelector('.md\\:hidden.fixed.bottom-0');
+
     return (
         <>
+            {/* Mobile Bottom Navigation - chỉ hiển thị trên mobile */}
+            <div className="md:hidden flex items-center justify-around px-1 py-2 bg-white border-t border-gray-200 safe-area-bottom">
+                {mobileMenuItems
+                    .filter(item => !item.requiresAuth || isLoggedIn)
+                    .map((item) => (
+                        <div key={item.name} className="flex-1 flex justify-center max-w-[20%]">
+                            {item.name === "Notifications" ? (
+                                <div className="w-full flex flex-col items-center justify-center">
+                                    <NotificationBell isCollapsed={true} />
+                                    <span className="text-xs mt-1 text-gray-600">Thông báo</span>
+                                </div>
+                            ) : (
+                                <Link
+                                    to={item.path}
+                                    onClick={() => setActiveLink(item.path)}
+                                    className={`
+                                        flex flex-col items-center justify-center p-1 rounded-lg w-full
+                                        transition-all duration-200 ease-in-out
+                                        ${activeLink === item.path || (item.path === '/profile' && location.pathname.startsWith('/profile'))
+                                            ? 'text-blue-500'
+                                            : 'text-gray-600'
+                                        }
+                                    `}
+                                    title={item.name}
+                                >
+                                    {item.name === "Profile" && profilePic ? (
+                                        <>
+                                            <img
+                                                src={profilePic}
+                                                alt="Profile"
+                                                className="w-6 h-6 rounded-full object-cover aspect-square border border-gray-200"
+                                                style={{ objectFit: 'cover' }}
+                                                onError={(e) => {
+                                                    e.target.onerror = null;
+                                                    e.target.src = '/default-avatar.png';
+                                                }}
+                                            />
+                                            <span className="text-xs mt-1">{item.name}</span>
+                                        </>
+                                    ) : (
+                                        <>
+                                            <span className="material-icons text-2xl">{item.icon}</span>
+                                            <span className="text-xs mt-1">{item.name}</span>
+                                        </>
+                                    )}
+                                </Link>
+                            )}
+                        </div>
+                    ))}
+            </div>
+
+            {/* Desktop Sidebar - ẩn trên mobile */}
+            <div className="hidden md:block">
             {isPopup ? (
-                <div className="w-64 h-screen bg-white text-gray-800 p-4 flex flex-col border-r border-gray-200 shadow-sm">
+                <div className="w-64 h-screen bg-white text-gray-800 p-4 flex flex-col border-r border-gray-200 shadow-sm overflow-visible">
                     {/* Logo với toggle button */}
                     <div className="flex items-center justify-between mb-10 pl-3">
                         <Link to="/" className="flex items-center space-x-2 group flex-1">
@@ -129,14 +199,15 @@ const Sidebar = () => {
                                                 <img
                                                     src={profilePic}
                                                     alt="Profile"
-                                                    className="w-8 h-8 rounded-full object-cover border-2 border-gray-200"
+                                                    className="w-8 h-8 rounded-full object-cover aspect-square border-2 border-gray-200"
+                                                    style={{ objectFit: 'cover' }}
                                                     onError={(e) => {
                                                         e.target.onerror = null;
                                                         e.target.src = '/default-avatar.png';
                                                     }}
                                                 />
                                             ) : (
-                                                <span className="material-icons text-2xl">{item.icon}</span>
+                                                <span className="material-icons text-2xl" style={{ width: '24px', height: '24px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{item.icon}</span>
                                             )}
                                             <span>{item.name}</span>
                                         </Link>
@@ -166,7 +237,7 @@ const Sidebar = () => {
 
                 </div>
             ) : (
-                <div className="w-20 h-screen bg-white text-gray-800 p-4 flex flex-col border-r border-gray-200 shadow-sm">
+                <div className="w-20 h-screen bg-white text-gray-800 p-4 flex flex-col border-r border-gray-200 shadow-sm overflow-visible">
                     {/* Logo với toggle button */}
                     <div className="flex flex-col items-center mb-10">
                         <Link to="/" className="flex items-center justify-center mb-2 group">
@@ -190,15 +261,17 @@ const Sidebar = () => {
                         {menuItems
                             .filter(item => !item.requiresAuth || isLoggedIn)
                             .map((item) => (
-                                <div key={item.name} className="relative">
+                                <div key={item.name} className="relative flex items-center justify-center">
                                     {item.name === "Notifications" ? (
-                                        <NotificationBell isCollapsed={true} />
+                                        <div className="w-full flex items-center justify-center">
+                                            <NotificationBell isCollapsed={true} />
+                                        </div>
                                     ) : (
                                         <Link
                                             to={item.path}
                                             onClick={() => setActiveLink(item.path)}
                                             className={`
-                                                flex items-center justify-center p-3 rounded-xl font-semibold
+                                                flex items-center justify-center p-3 rounded-xl font-semibold w-full
                                                 transition-all duration-200 ease-in-out transform
                                                 ${activeLink === item.path || (item.path === '/profile' && location.pathname.startsWith('/profile'))
                                                     ? 'bg-blue-500 text-white shadow-md'
@@ -211,14 +284,15 @@ const Sidebar = () => {
                                                 <img
                                                     src={profilePic}
                                                     alt="Profile"
-                                                    className="w-8 h-8 rounded-full object-cover border-2 border-gray-200"
+                                                    className="w-8 h-8 rounded-full object-cover aspect-square border-2 border-gray-200"
+                                                    style={{ objectFit: 'cover' }}
                                                     onError={(e) => {
                                                         e.target.onerror = null;
                                                         e.target.src = '/default-avatar.png';
                                                     }}
                                                 />
                                             ) : (
-                                                <span className="material-icons text-2xl">{item.icon}</span>
+                                                <span className="material-icons text-2xl" style={{ width: '24px', height: '24px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{item.icon}</span>
                                             )}
                                         </Link>
                                     )}
@@ -246,6 +320,7 @@ const Sidebar = () => {
                     )}
                 </div>
             )}
+            </div>
         </>
     );
 };

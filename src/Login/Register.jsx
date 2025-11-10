@@ -1,22 +1,22 @@
 import React, { useState } from "react";
 import axios from "axios";
-// import { useNavigate } from "react-router-dom"; // Removed this import
+import { useNavigate } from "react-router-dom";
 
 // Renamed to RegisterComponent and passed setPage for navigation
 const RegisterComponent = ({ setPage }) => {
-  const [formData, setFormData] = useState({
-    email: "",
-    // Thay đổi 'name' thành 'first_name' và 'last_name'
-    first_name: "",
-    last_name: "",
-    // Đã xóa trường 'username'
-    password: "",
-  });
+  const [formData, setFormData] = useState({
+    email: "",
+    // Thay đổi 'name' thành 'first_name' và 'last_name'
+    first_name: "",
+    last_name: "",
+    // Đã xóa trường 'username'
+    password: "",
+  });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [successMessage, setSuccessMessage] = useState("");
   const linkBackend = import.meta.env.VITE_Link_backend || "http://localhost:5000";
-  // const navigate = useNavigate(); // Removed this hook
+  const navigate = useNavigate();
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -37,9 +37,11 @@ const RegisterComponent = ({ setPage }) => {
         `${linkBackend}/api/auth/register`,
         formData
       );
-      setSuccessMessage(response.data.message || "Đăng ký thành công!");
-      // Replaced navigate("/login") with setPage('login')
-      setTimeout(() => setPage("login"), 1500);
+      setSuccessMessage(response.data.message || "Đăng ký thành công!");
+      // Redirect to /Login route after successful registration
+      setTimeout(() => {
+        navigate("/Login");
+      }, 1500);
     } catch (err) {
       console.error("Lỗi đăng ký:", err);
       if (err.response?.data?.error) {
