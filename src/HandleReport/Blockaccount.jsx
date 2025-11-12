@@ -1,28 +1,27 @@
 import React, { useState, useMemo } from 'react';
 import { FiSearch, FiMoreHorizontal } from 'react-icons/fi';
 
-// Dữ liệu mẫu mới cho các tài khoản, chỉ một vài tài khoản bị 'Banned'
 const initialUsers = [
-  { email: 'tramy@gmail.com', status: 'Banned', role: 'User', bandDate: 'August 5, 2024' },
-  { email: 'tranthib@example.com', status: 'Active', role: 'User', bandDate: null },
-  { email: 'admin@gmail.com', status: 'Active', role: 'Admin', bandDate: null },
-  { email: 'handlerreport@gmail.com', status: 'Active', role: 'User', bandDate: null },
+  { email: 'john.doe@example.com', status: 'Banned', role: 'User', bandDate: 'August 5, 2024' },
+  { email: 'jane.smith@example.com', status: 'Active', role: 'User', bandDate: null },
+  { email: 'admin@example.com', status: 'Active', role: 'Admin', bandDate: null },
+  { email: 'report.handler@example.com', status: 'Active', role: 'User', bandDate: null },
   { email: 'lehuuc@example.com', status: 'Active', role: 'User', bandDate: null },
-  { email: 'hai@gmail.com', status: 'Active', role: 'User', bandDate: null },
+  { email: 'hai@example.com', status: 'Active', role: 'User', bandDate: null },
   { email: 'nguyenvanc@example.com', status: 'Banned', role: 'User', bandDate: 'April 10, 2024' },
-  { email: 'nguyenvand@example.com', status: 'Active', role: 'User', bandDate: null },
-  { email: 'nguyennguyen@gmail.com', status: 'Active', role: 'User', bandDate: null },
-  { email: 'taki1@gmail.com', status: 'Active', role: 'User', bandDate: null },
-  { email: 'nguyenvana@example.com', status: 'Active', role: 'User', bandDate: null },
-  { email: 'phunggaming@gmail.com', status: 'Banned', role: 'User', bandDate: 'October 3, 2023' },
-  { email: 'taki@gmail.com', status: 'Active', role: 'User', bandDate: null },
-  { email: 'haiga@gmail.com', status: 'Active', role: 'User', bandDate: null },
-  { email: 'haiphong@gmail.com', status: 'Active', role: 'User', bandDate: null },
-  { email: 'haigagaming1123@gmail.com', status: 'Active', role: 'User', bandDate: null },
+  { email: 'david.lee@example.com', status: 'Active', role: 'User', bandDate: null },
+  { email: 'sarah.jones@example.com', status: 'Active', role: 'User', bandDate: null },
+  { email: 'mark.taylor@example.com', status: 'Active', role: 'User', bandDate: null },
+  { email: 'lisa.wong@example.com', status: 'Active', role: 'User', bandDate: null },
+  { email: 'phung.gaming@example.com', status: 'Banned', role: 'User', bandDate: 'October 3, 2023' },
+  { email: 'taki@example.com', status: 'Active', role: 'User', bandDate: null },
+  { email: 'haiga@example.com', status: 'Active', role: 'User', bandDate: null },
+  { email: 'haiphong@example.com', status: 'Active', role: 'User', bandDate: null },
+  { email: 'gaming1123@example.com', status: 'Active', role: 'User', bandDate: null },
   { email: 'phuongthao.design@example.com', status: 'Active', role: 'User', bandDate: null },
   { email: 'minhanh.photo@example.com', status: 'Banned', role: 'User', bandDate: 'May 2, 2023' },
   { email: 'giabao.dev@example.com', status: 'Active', role: 'User', bandDate: null },
-  { email: 'trinhA@gmail.com', status: 'Active', role: 'User', bandDate: null },
+  { email: 'trinhA@example.com', status: 'Active', role: 'User', bandDate: null },
 ];
 
 const BlockAccountTable = () => {
@@ -31,23 +30,17 @@ const BlockAccountTable = () => {
   const [selectedEmails, setSelectedEmails] = useState(new Set());
   const [searchTerm, setSearchTerm] = useState('');
 
-  // Hàm xử lý unban một người dùng
   const handleUnban = (email) => {
-    const updatedUsers = users.map(user => {
-      if (user.email === email) {
-        return { ...user, status: 'Active', bandDate: null };
-      }
-      return user;
-    });
+    const updatedUsers = users.map(user => 
+      user.email === email ? { ...user, status: 'Active', bandDate: null } : user
+    );
     setUsers(updatedUsers);
     setActiveMenu(null);
   };
 
-  // Hàm xử lý ban một người dùng
   const handleBan = (email) => {
     const updatedUsers = users.map(user => {
       if (user.email === email) {
-        // Sử dụng ngày hiện tại khi ban tài khoản
         const today = new Date();
         const options = { year: 'numeric', month: 'long', day: 'numeric' };
         const formattedDate = today.toLocaleDateString('en-US', options);
@@ -59,29 +52,23 @@ const BlockAccountTable = () => {
     setActiveMenu(null);
   };
 
-  // Lọc danh sách người dùng dựa trên từ khóa tìm kiếm
   const filteredUsers = useMemo(() => {
     return users.filter(user =>
       user.email.toLowerCase().includes(searchTerm.toLowerCase())
     );
   }, [users, searchTerm]);
 
-  // Kiểm tra xem tất cả người dùng hiển thị có được chọn không
   const isAllSelected = filteredUsers.length > 0 && filteredUsers.every(user => selectedEmails.has(user.email));
 
-  // Hàm xử lý khi click vào checkbox "chọn tất cả"
   const handleSelectAll = () => {
     if (isAllSelected) {
-      // Nếu đã chọn tất cả, bỏ chọn tất cả
       setSelectedEmails(new Set());
     } else {
-      // Ngược lại, chọn tất cả người dùng đang hiển thị
       const allEmails = new Set(filteredUsers.map(user => user.email));
       setSelectedEmails(allEmails);
     }
   };
 
-  // Hàm xử lý khi click vào checkbox của từng hàng
   const handleSelectOne = (email) => {
     const newSelectedEmails = new Set(selectedEmails);
     if (newSelectedEmails.has(email)) {
@@ -92,84 +79,89 @@ const BlockAccountTable = () => {
     setSelectedEmails(newSelectedEmails);
   };
 
-  // Hàm xử lý hiển thị/ẩn menu hành động
   const toggleMenu = (index) => {
     setActiveMenu(activeMenu === index ? null : index);
   };
 
   return (
-    <div className="bg-white rounded-lg shadow-sm overflow-hidden">
-      <div className="p-4 border-b">
+    // Card background changed to a very light blue pastel, slightly transparent
+    <div className="bg-blue-100/50 rounded-xl shadow-sm overflow-hidden border border-blue-100">
+      {/* Search bar styling */}
+      <div className="p-5 border-b border-blue-100">
         <div className="relative">
-          <FiSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+          <FiSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" />
           <input
             type="text"
-            placeholder="Search"
-            className="w-full pl-10 pr-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+            placeholder="Search by email..."
+            className="w-full pl-10 pr-4 py-2.5 bg-white/70 border border-blue-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-300 focus:border-blue-400 text-sm transition-all duration-200"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
           />
         </div>
       </div>
+
       <div className="overflow-x-auto">
-        <table className="min-w-full bg-white text-sm">
-          <thead className="text-gray-600 text-left bg-gray-50">
+        <table className="min-w-full bg-transparent text-sm"> {/* Table background also transparent */}
+          <thead className="bg-blue-50"> {/* Table header a slightly darker pastel */}
             <tr>
-              <th className="p-4 font-medium">
+              <th className="px-6 py-3 text-left">
                 <input
                   type="checkbox"
-                  className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                  className="h-4 w-4 rounded border-gray-300 text-blue-500 focus:ring-blue-400"
                   checked={isAllSelected}
                   onChange={handleSelectAll}
                 />
               </th>
-              <th className="p-4 font-medium">Email</th>
-              <th className="p-4 font-medium">Status</th>
-              <th className="p-4 font-medium">Role</th>
-              <th className="p-4 font-medium">Band Date</th>
-              <th className="p-4 font-medium">Actions</th>
+              <th className="px-6 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Email</th>
+              <th className="px-6 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Status</th>
+              <th className="px-6 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Role</th>
+              <th className="px-6 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Banned Date</th>
+              <th className="px-6 py-3 text-right text-xs font-semibold text-gray-700 uppercase tracking-wider">Actions</th>
             </tr>
           </thead>
-          <tbody>
+          
+          <tbody className="divide-y divide-blue-100"> {/* Lighter divider */}
             {filteredUsers.map((user, index) => (
-              <tr key={index} className="border-t hover:bg-gray-50">
-                <td className="p-4">
+              <tr key={user.email} className="hover:bg-blue-100 transition-colors duration-150"> {/* Light blue hover */}
+                <td className="px-6 py-4 whitespace-nowrap">
                   <input
                     type="checkbox"
-                    className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                    className="h-4 w-4 rounded border-gray-300 text-blue-500 focus:ring-blue-400"
                     checked={selectedEmails.has(user.email)}
                     onChange={() => handleSelectOne(user.email)}
                   />
                 </td>
-                <td className="p-4 font-medium text-gray-900">{user.email}</td>
-                <td className="p-4">
-                  <span className={`text-xs font-semibold px-3 py-1 rounded-full ${user.status === 'Banned' ? 'bg-red-100 text-red-800' : 'bg-green-100 text-green-800'}`}>
+                <td className="px-6 py-4 whitespace-nowrap font-medium text-gray-900">{user.email}</td>
+                <td className="px-6 py-4 whitespace-nowrap">
+                  <span className={`text-xs font-bold px-3 py-1.5 rounded-full ${
+                    user.status === 'Banned' ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700' // Lighter pastel reds and greens
+                  }`}>
                     {user.status}
                   </span>
                 </td>
-                <td className="p-4 text-gray-600">{user.role}</td>
-                <td className="p-4 text-gray-600">{user.bandDate || 'N/A'}</td>
-                <td className="p-4 relative">
+                <td className="px-6 py-4 whitespace-nowrap text-gray-700">{user.role}</td>
+                <td className="px-6 py-4 whitespace-nowrap text-gray-700">{user.bandDate || 'N/A'}</td>
+                <td className="px-6 py-4 whitespace-nowrap text-right relative">
                   <button
-                    className="text-gray-500 hover:text-gray-800"
+                    className="text-gray-500 hover:text-gray-800 p-2 rounded-full hover:bg-gray-200 transition-colors duration-150"
                     onClick={() => toggleMenu(index)}
                   >
                     <FiMoreHorizontal size={20} />
                   </button>
                   {activeMenu === index && (
-                    <div className="absolute right-0 top-full mt-2 w-48 rounded-md bg-white shadow-lg ring-1 ring-black ring-opacity-5 z-10">
+                    <div className="absolute right-0 top-full mt-2 w-48 rounded-lg bg-white shadow-lg ring-1 ring-black ring-opacity-5 z-10 animate-fade-in"> {/* White background for dropdown, still provides contrast */}
                       <div className="py-1">
                         {user.status === 'Banned' ? (
                           <button
                             onClick={() => handleUnban(user.email)}
-                            className="block px-4 py-2 text-sm text-gray-700 w-full text-left hover:bg-gray-100"
+                            className="block px-4 py-2 text-sm text-gray-700 w-full text-left hover:bg-green-50 hover:text-green-700 transition-colors"
                           >
                             Unban User
                           </button>
                         ) : (
                           <button
                             onClick={() => handleBan(user.email)}
-                            className="block px-4 py-2 text-sm text-gray-700 w-full text-left hover:bg-gray-100 text-red-600"
+                            className="block px-4 py-2 text-sm text-red-600 w-full text-left hover:bg-red-50 transition-colors"
                           >
                             Ban User
                           </button>
@@ -187,10 +179,10 @@ const BlockAccountTable = () => {
   );
 };
 
-// Component chính của trang Blockaccount
 const Blockaccount = () => {
   return (
-    <div className="bg-white rounded-lg shadow-sm overflow-hidden">
+    <div>
+      <h1 className="text-3xl font-extrabold text-gray-900 mb-6">Manage Accounts</h1>
       <BlockAccountTable />
     </div>
   );

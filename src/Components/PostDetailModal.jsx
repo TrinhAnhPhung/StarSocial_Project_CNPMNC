@@ -12,6 +12,24 @@ const PostDetailModal = ({ post, isOpen, onClose, linkBackend }) => {
   const [isSubmittingComment, setIsSubmittingComment] = useState(false);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
 
+  // --- STATE MỚI CHO BÁO CÁO VÀ AUTH ---
+  const [isReporting, setIsReporting] = useState(false);
+  const [currentUserId, setCurrentUserId] = useState(null);
+  // --- HẾT STATE MỚI ---
+
+  // Lấy current user ID
+  useEffect(() => {
+    const token = localStorage.getItem('token');
+    if (token) {
+      try {
+        const payload = JSON.parse(atob(token.split('.')[1]));
+        setCurrentUserId(payload.id);
+      } catch (err) {
+        console.error('Error parsing token:', err);
+      }
+    }
+  }, []);
+
   useEffect(() => {
     if (isOpen && post) {
       fetchComments();
@@ -21,6 +39,9 @@ const PostDetailModal = ({ post, isOpen, onClose, linkBackend }) => {
       setCurrentImageIndex(0);
     }
   }, [isOpen, post]);
+
+  // Kiểm tra chủ sở hữu
+  const isPostOwner = currentUserId && post?.user_id && String(currentUserId) === String(post.user_id);
 
   const fetchComments = async () => {
     if (!post?.id) return;
@@ -131,6 +152,45 @@ const PostDetailModal = ({ post, isOpen, onClose, linkBackend }) => {
       console.error('Error liking comment:', error);
     }
   };
+
+  // --- HÀM MỚI: Xử lý BÁO CÁO BÀI VIẾT ---
+  const handleReport = async () => {
+    if (isReporting) return;
+    if (isPostOwner) return; // Không thể tự báo cáo
+
+    // Dùng prompt() đơn giản vì đang ở trong modal
+    const reason = window.prompt("Vui lòng nhập lý do bạn muốn báo cáo bài viết này:");
+
+    if (!reason || reason.trim() === "") {
+      // User hủy hoặc không nhập gì
+      return;
+    }
+
+    const token = localStorage.getItem('token');
+    if (!token) {
+      alert('Bạn cần đăng nhập để báo cáo');
+      return;
+    }
+
+    setIsReporting(true);
+    try {
+      await axios.post(
+        `${linkBackend}/api/reports/post/${post.id}`,
+        { reason: reason.trim() },
+        {
+          headers: { 'Authorization': `Bearer ${token}` }
+        }
+      );
+      alert("Đã gửi báo cáo thành công. Cảm ơn bạn!");
+      onClose(); // Đóng modal sau khi báo cáo
+    } catch (error) {
+      console.error('Error reporting post:', error);
+      alert(`Lỗi: ${error.response?.data?.error || error.message}`);
+    } finally {
+      setIsReporting(false);
+    }
+  };
+  // --- HẾT HÀM MỚI ---
 
   // Xử lý URL hình ảnh
   const getImageUrl = (imageUrl) => {
@@ -268,8 +328,8 @@ const PostDetailModal = ({ post, isOpen, onClose, linkBackend }) => {
 
         {/* Phần thông tin và bình luận (bên phải) */}
         <div className="w-full md:w-1/2 flex flex-col max-h-[90vh]">
-          {/* Header: User info */}
-          <div className="p-4 border-b border-gray-200 flex items-center gap-3">
+          {/* --- SỬA ĐỔI HEADER: Thêm nút báo cáo --- */}
+          <div className="p-4 border-b border-gray-200 flex items-center justify-between gap-3">
             <Link 
               to={`/profile/${post.user_id || post.Email || post.username}`}
               onClick={onClose}
@@ -301,7 +361,22 @@ const PostDetailModal = ({ post, isOpen, onClose, linkBackend }) => {
                 </p>
               </div>
             </Link>
+            
+            {/* Nút Báo cáo (chỉ hiển thị nếu không phải chủ bài viết) */}
+            {!isPostOwner && (
+              <button
+                onClick={handleReport}
+                className="text-gray-500 hover:text-gray-800 p-1 rounded-full"
+                title="Báo cáo bài viết"
+                disabled={isReporting}
+              >
+                <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 20 20">
+                  <path d="M10 6a2 2 0 110-4 2 2 0 010 4zM10 12a2 2 0 110-4 2 2 0 010 4zM10 18a2 2 0 110-4 2 2 0 010 4z"></path>
+                </svg>
+              </button>
+            )}
           </div>
+          {/* --- HẾT SỬA ĐỔI HEADER --- */}
 
           {/* Comments section - scrollable */}
           <div className="flex-1 overflow-y-auto p-4">
@@ -467,4 +542,3 @@ const PostDetailModal = ({ post, isOpen, onClose, linkBackend }) => {
 };
 
 export default PostDetailModal;
-

@@ -94,6 +94,13 @@ const PostCard = ({ post, onPostDeleted, onPostUpdated }) => {
   const [imageError, setImageError] = useState(false);
   const [videoError, setVideoError] = useState(false);
   const [expandedCaption, setExpandedCaption] = useState(false);
+
+  // --- STATE MỚI CHO BÁO CÁO ---
+  const [isReportModalOpen, setIsReportModalOpen] = useState(false);
+  const [reportReason, setReportReason] = useState("");
+  const [isReporting, setIsReporting] = useState(false);
+  // --- HẾT STATE MỚI ---
+
   const menuRef = useRef(null);
 
   const linkBackend = import.meta.env.VITE_Link_backend || 'http://localhost:5000';
@@ -344,6 +351,38 @@ const PostCard = ({ post, onPostDeleted, onPostUpdated }) => {
     }
   };
 
+  // --- HÀM MỚI: Xử lý BÁO CÁO BÀI VIẾT ---
+  const handleReportSubmit = async (e) => {
+    e.preventDefault();
+    if (reportReason.trim() === "") {
+      alert("Vui lòng nhập lý do báo cáo.");
+      return;
+    }
+
+    const headers = getAuthHeaders();
+    if (!headers) return;
+
+    setIsReporting(true);
+    try {
+      await axios.post(
+        // ✅ ĐÃ SỬA: Đường dẫn API báo cáo đã được trỏ sang /reports/post/
+        `${API_URL}/reports/post/${post.id}`,
+        { reason: reportReason },
+        { headers }
+      );
+      
+      alert("Đã gửi báo cáo thành công. Cảm ơn bạn!");
+      setIsReportModalOpen(false);
+      setReportReason("");
+    } catch (error) {
+      console.error("Lỗi khi báo cáo bài viết:", error);
+      alert(`Lỗi: ${error.response?.data?.error || error.message}`);
+    } finally {
+      setIsReporting(false);
+    }
+  };
+  // --- HẾT HÀM MỚI ---
+
   // --- Xử lý XÓA BÀI VIẾT ---
   const handleDeletePost = async () => {
     // Kiểm tra quyền sở hữu trước khi xóa
@@ -425,7 +464,7 @@ const PostCard = ({ post, onPostDeleted, onPostUpdated }) => {
   const imageUrl = getImageUrl(post.image_url);
   const videoUrl = getVideoUrl(post.video_url);
 
-  // --- JSX GIỮ NGUYÊN ---
+  // --- JSX ---
   return (
     <div className="bg-white max-w-lg mx-auto border border-gray-200 rounded-xl overflow-hidden pb-4 mb-6 w-full animate-fade-in hover-lift">
       <div className="px-2 sm:px-4 py-3 flex justify-between items-center">
@@ -461,35 +500,50 @@ const PostCard = ({ post, onPostDeleted, onPostUpdated }) => {
           </div>
         </Link>
 
-        {/* Chỉ hiển thị menu nếu user là chủ sở hữu bài viết */}
-        {isPostOwner && (
-          <div className="relative" ref={menuRef}>
-            <button
-              onClick={() => setIsMenuOpen(!isMenuOpen)}
-              className="text-gray-500 hover:text-gray-800 p-1 rounded-full"
-            >
-              <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 20 20">
-                <path d="M10 6a2 2 0 110-4 2 2 0 010 4zM10 12a2 2 0 110-4 2 2 0 010 4zM10 18a2 2 0 110-4 2 2 0 010 4z"></path>
-              </svg>
-            </button>
-            {isMenuOpen && (
-              <div className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg py-1 z-10 border border-gray-200">
+        {/* --- SỬA ĐỔI PHẦN MENU --- */}
+        {/* Luôn hiển thị nút 3 chấm */}
+        <div className="relative" ref={menuRef}>
+          <button
+            onClick={() => setIsMenuOpen(!isMenuOpen)}
+            className="text-gray-500 hover:text-gray-800 p-1 rounded-full"
+          >
+            <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 20 20">
+              <path d="M10 6a2 2 0 110-4 2 2 0 010 4zM10 12a2 2 0 110-4 2 2 0 010 4zM10 18a2 2 0 110-4 2 2 0 010 4z"></path>
+            </svg>
+          </button>
+          {isMenuOpen && (
+            <div className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg py-1 z-10 border border-gray-200">
+              {isPostOwner ? (
+                // Nếu là chủ bài viết
+                <>
+                  <button
+                    onClick={handleEditPost}
+                    className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                  >
+                    Sửa bài viết
+                  </button>
+                  <button
+                    onClick={handleDeletePost}
+                    className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-gray-100 font-semibold"
+                  >
+                    Xóa bài viết
+                  </button>
+                </>
+              ) : (
+                // Nếu KHÔNG phải chủ bài viết
                 <button
-                  onClick={handleEditPost}
-                  className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                  onClick={() => {
+                    setIsReportModalOpen(true);
+                    setIsMenuOpen(false);
+                  }}
+                  className="w-full text-left px-4 py-2 text-sm text-yellow-600 hover:bg-gray-100 font-semibold"
                 >
-                  Sửa bài viết
+                  Báo cáo bài viết
                 </button>
-                <button
-                  onClick={handleDeletePost}
-                  className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-gray-100 font-semibold"
-                >
-                  Xóa bài viết
-                </button>
-              </div>
-            )}
-          </div>
-        )}
+              )}
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Caption hiển thị dưới avatar, trước hình ảnh */}
@@ -810,6 +864,58 @@ const PostCard = ({ post, onPostDeleted, onPostUpdated }) => {
                   disabled={isUpdating}
                 >
                   {isUpdating ? 'Đang cập nhật...' : 'Cập nhật'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* --- MODAL MỚI: BÁO CÁO BÀI VIẾT --- */}
+      {isReportModalOpen && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-xl shadow-xl w-full max-w-lg mx-4 p-6">
+            <div className="flex justify-between items-center mb-6">
+              <h2 className="text-2xl font-bold text-gray-800">Báo cáo bài viết</h2>
+              <button
+                onClick={() => setIsReportModalOpen(false)}
+                className="text-gray-500 hover:text-gray-700 text-2xl cursor-pointer"
+                disabled={isReporting}
+              >
+                &times;
+              </button>
+            </div>
+
+            <form onSubmit={handleReportSubmit} className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Lý do báo cáo
+                </label>
+                <textarea
+                  value={reportReason}
+                  onChange={(e) => setReportReason(e.target.value)}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-base"
+                  rows="4"
+                  placeholder="Vui lòng mô tả lý do bạn báo cáo bài viết này..."
+                  required
+                />
+              </div>
+
+              <div className="flex justify-end gap-3 pt-4">
+                <button
+                  type="button"
+                  onClick={() => setIsReportModalOpen(false)}
+                  className="px-6 py-2.5 border border-gray-300 rounded-lg text-gray-700 font-medium hover:bg-gray-50 transition-colors cursor-pointer"
+                  disabled={isReporting}
+                >
+                  Hủy
+                </button>
+                <button
+                  type="submit"
+                  className="px-6 py-2.5 bg-red-500 text-white rounded-lg font-medium hover:bg-red-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+                  disabled={isReporting || !reportReason.trim()}
+                >
+                  {isReporting ? 'Đang gửi...' : 'Gửi báo cáo'}
                 </button>
               </div>
             </form>
