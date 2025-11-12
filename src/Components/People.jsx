@@ -81,6 +81,13 @@ const People = () => {
         fetchUsers();
     }, [linkBackend, currentUserId]);
 
+    // Chuẩn hoá username để không hiển thị toàn bộ email
+    const formatUsername = (value) => {
+        if (!value) return '';
+        const str = String(value);
+        return str.includes('@') ? str.split('@')[0] : str;
+    };
+
     const handleFollowToggle = async (userId, e) => {
         e.preventDefault();
         e.stopPropagation();
@@ -217,14 +224,14 @@ const People = () => {
                     <input
                         type="text"
                         placeholder="Search by name or username..."
-                        className="w-full pl-12 pr-4 py-3 border border-gray-300 rounded-full bg-white shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                        className="w-full pl-12 pr-4 py-3 border border-gray-300 rounded-full bg-white shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all hover-lift"
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
                     />
                     {searchTerm && (
                         <button
                             onClick={() => setSearchTerm('')}
-                            className="absolute top-1/2 right-4 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                            className="absolute top-1/2 right-4 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 cursor-pointer"
                         >
                             ✕
                         </button>
@@ -237,7 +244,7 @@ const People = () => {
                         {filteredUsers.map((user) => (
                             <div 
                                 key={user.id} 
-                                className="bg-white rounded-xl p-6 flex flex-col items-center text-center border border-gray-200 shadow-md hover:shadow-xl transition-all duration-300 ease-in-out hover:-translate-y-1"
+                                className="bg-white rounded-xl p-6 flex flex-col items-center text-center border border-gray-200 shadow-md hover:shadow-xl transition-all duration-300 ease-in-out hover:-translate-y-1 hover-lift animate-fade-in"
                             >
                                 <Link 
                                     to={`/profile/${user.id || user.email || user.username}`} 
@@ -262,15 +269,15 @@ const People = () => {
                                     <h2 className="text-lg font-semibold text-gray-800 group-hover:text-blue-600 transition-colors mb-1">
                                         {user.name || 'Unnamed User'}
                                     </h2>
-                                    <p className="text-gray-500 text-sm">@{user.username || 'user'}</p>
+                                    <p className="text-gray-500 text-sm max-w-[180px] truncate" title={user.username || ''}>@{formatUsername(user.username) || 'user'}</p>
                                 </Link>
                                 <button
                                     onClick={(e) => handleFollowToggle(user.id, e)}
                                     disabled={followingLoading.has(user.id)}
-                                    className={`w-full py-2.5 px-4 rounded-full font-semibold text-sm transition-all duration-300 ease-in-out focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2
+                                    className={`w-full py-2.5 px-4 rounded-full font-semibold text-sm transition-all duration-300 ease-in-out focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 cursor-pointer hover-lift
                                         ${user.isFollowing 
-                                            ? 'bg-blue-600 text-white hover:bg-blue-700 focus:ring-blue-500' 
-                                            : 'bg-gray-200 text-gray-800 hover:bg-blue-500 hover:text-white focus:ring-gray-400'
+                                            ? 'bg-white text-blue-600 border-2 border-blue-500 hover:bg-blue-50 focus:ring-blue-500' 
+                                            : 'btn-gradient text-white'
                                         }`}
                                 >
                                     {followingLoading.has(user.id) ? (

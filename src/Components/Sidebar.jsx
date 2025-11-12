@@ -152,10 +152,10 @@ const Sidebar = () => {
             {/* Desktop Sidebar - ẩn trên mobile */}
             <div className="hidden md:block">
             {isPopup ? (
-                <div className="w-64 h-screen bg-white text-gray-800 p-4 flex flex-col border-r border-gray-200 shadow-sm overflow-visible">
+                <div className="w-64 h-screen sidebar-animated text-gray-800 p-4 flex flex-col border-r border-gray-200 shadow-sm overflow-visible transition-all duration-300">
                     {/* Logo với toggle button */}
                     <div className="flex items-center justify-between mb-10 pl-3">
-                        <Link to="/" className="flex items-center space-x-2 group flex-1">
+                        <Link to="/" className="flex items-center space-x-2 group flex-1 hover-lift">
                             <img 
                                 src="./src/assets/Logo.png" 
                                 alt="StarSocial Logo" 
@@ -187,7 +187,7 @@ const Sidebar = () => {
                                             to={item.path}
                                             onClick={() => setActiveLink(item.path)}
                                             className={`
-                                                flex items-center space-x-4 p-3 rounded-xl font-semibold
+                                                flex items-center space-x-4 p-3 rounded-xl font-semibold cursor-pointer
                                                 transition-all duration-200 ease-in-out transform
                                                 ${activeLink === item.path || (item.path === '/profile' && location.pathname.startsWith('/profile'))
                                                     ? 'bg-blue-500 text-white shadow-md'
@@ -220,7 +220,7 @@ const Sidebar = () => {
                     {isLoggedIn ? (
                         <button
                             onClick={handleLogout}
-                            className="flex items-center space-x-4 p-3 rounded-xl text-gray-700 mt-auto hover:bg-red-50 hover:text-red-600 hover:scale-105 hover:shadow-md transition-all duration-200"
+                            className="flex items-center space-x-4 p-3 rounded-xl mt-auto btn-gradient cursor-pointer"
                         >
                             <span className="material-icons text-2xl">logout</span>
                             <span>Logout</span>
@@ -228,7 +228,7 @@ const Sidebar = () => {
                     ) : (
                         <Link
                             to="/Login"
-                            className="flex items-center space-x-4 p-3 rounded-xl text-gray-700 mt-auto hover:bg-blue-50 hover:text-blue-600 hover:scale-105 hover:shadow-md transition-all duration-200"
+                            className="flex items-center space-x-4 p-3 rounded-xl mt-auto btn-gradient cursor-pointer"
                         >
                             <span className="material-icons text-2xl">login</span>
                             <span>Login</span>
@@ -237,7 +237,7 @@ const Sidebar = () => {
 
                 </div>
             ) : (
-                <div className="w-20 h-screen bg-white text-gray-800 p-4 flex flex-col border-r border-gray-200 shadow-sm overflow-visible">
+                <div className="w-20 h-screen sidebar-animated text-gray-800 p-4 flex flex-col border-r border-gray-200 shadow-sm overflow-visible transition-all duration-300">
                     {/* Logo với toggle button */}
                     <div className="flex flex-col items-center mb-10">
                         <Link to="/" className="flex items-center justify-center mb-2 group">
@@ -271,7 +271,7 @@ const Sidebar = () => {
                                             to={item.path}
                                             onClick={() => setActiveLink(item.path)}
                                             className={`
-                                                flex items-center justify-center p-3 rounded-xl font-semibold w-full
+                                                flex items-center justify-center p-3 rounded-xl font-semibold w-full cursor-pointer
                                                 transition-all duration-200 ease-in-out transform
                                                 ${activeLink === item.path || (item.path === '/profile' && location.pathname.startsWith('/profile'))
                                                     ? 'bg-blue-500 text-white shadow-md'

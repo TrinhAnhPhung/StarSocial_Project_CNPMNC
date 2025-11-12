@@ -8,7 +8,7 @@ import { vi } from 'date-fns/locale';
 const HeartIcon = ({ isLiked }) => (
   <svg
     aria-label={isLiked ? "Bỏ thích" : "Thích"}
-    className={`w-7 h-7 transition-transform duration-200 ease-in-out transform hover:scale-110 ${
+    className={`w-7 h-7 transition-transform duration-200 ease-in-out transform hover:scale-110 ${isLiked ? 'animate-heartbeat' : ''} ${
       isLiked ? 'text-red-500' : 'text-black'
     }`}
     fill={isLiked ? 'currentColor' : 'none'}
@@ -427,9 +427,9 @@ const PostCard = ({ post, onPostDeleted, onPostUpdated }) => {
 
   // --- JSX GIỮ NGUYÊN ---
   return (
-    <div className="bg-white max-w-lg mx-auto border-b border-gray-200 pb-4 mb-6 w-full">
+    <div className="bg-white max-w-lg mx-auto border border-gray-200 rounded-xl overflow-hidden pb-4 mb-6 w-full animate-fade-in hover-lift">
       <div className="px-2 sm:px-4 py-3 flex justify-between items-center">
-        <Link to={`/profile/${post.user_id || post.Email || post.username}`} className="flex items-center gap-3">
+        <Link to={`/profile/${post.user_id || post.Email || post.username}`} className="flex items-center gap-3 cursor-pointer">
           <img
             src={(() => {
               if (!post.profile_picture_url || post.profile_picture_url === 'null' || post.profile_picture_url === 'undefined') {
@@ -505,7 +505,7 @@ const PostCard = ({ post, onPostDeleted, onPostUpdated }) => {
           {post.caption.length > 100 && (
             <button
               onClick={() => setExpandedCaption(!expandedCaption)}
-              className="text-gray-500 hover:text-gray-700 text-sm font-medium mt-1"
+              className="text-gray-500 hover:text-gray-700 text-sm font-medium mt-1 cursor-pointer"
             >
               {expandedCaption ? 'Thu gọn' : 'Xem thêm'}
             </button>
@@ -513,7 +513,7 @@ const PostCard = ({ post, onPostDeleted, onPostUpdated }) => {
           {post.hashtags && (
             <div className="flex flex-wrap gap-x-2 mt-2">
               {post.hashtags.split(' ').filter(tag => tag.trim()).map((tag, index) => (
-                <Link key={index} to={`/hashtags/${tag.replace('#','')}`} className="text-blue-500 hover:underline font-medium text-sm">
+                <Link key={index} to={`/hashtags/${tag.replace('#','')}`} className="text-blue-500 hover:underline font-medium text-sm cursor-pointer">
                   #{tag.replace('#','')}
                 </Link>
               ))}
@@ -608,15 +608,15 @@ const PostCard = ({ post, onPostDeleted, onPostUpdated }) => {
 
       <div className="px-2 sm:px-4 pt-4 pb-2 flex justify-between items-center">
         <div className="flex items-center gap-2 sm:gap-4">
-          <button onClick={handleLike} className="focus:outline-none">
+          <button onClick={handleLike} className="focus:outline-none cursor-pointer">
             <HeartIcon isLiked={isLiked} />
           </button>
-          <button onClick={handleToggleComments} className="focus:outline-none">
-            <CommentIcon />
+          <button onClick={handleToggleComments} className="focus:outline-none icon-bounce cursor-pointer">
+            <CommentIcon/>
           </button>
-          <button className="focus:outline-none"><ShareIcon /></button>
+          <button className="focus:outline-none cursor-pointer"><ShareIcon /></button>
         </div>
-        <button className="focus:outline-none"><BookmarkIcon /></button>
+        <button className="focus:outline-none cursor-pointer"><BookmarkIcon /></button>
       </div>
 
       <div className="px-2 sm:px-4 pb-2">
@@ -626,14 +626,14 @@ const PostCard = ({ post, onPostDeleted, onPostUpdated }) => {
 
       <div className="px-2 sm:px-4 pt-2 text-sm">
         {commentsCount > 0 && (
-          <button onClick={handleToggleComments} className="text-gray-500 hover:text-gray-700">
+          <button onClick={handleToggleComments} className="text-gray-500 hover:text-gray-700 cursor-pointer">
             Xem tất cả {commentsCount} bình luận
           </button>
         )}
       </div>
 
       {showComments && (
-        <div className="px-2 sm:px-4 pt-4 mt-2 border-t border-gray-100">
+        <div className="px-2 sm:px-4 pt-4 mt-2 border-t border-gray-100 animate-slide-up">
           {isLoadingComments ? (
             <div className="text-center py-4">
               <p className="text-xs text-gray-500">Đang tải bình luận...</p>
@@ -665,7 +665,7 @@ const PostCard = ({ post, onPostDeleted, onPostUpdated }) => {
                     />
                     <div className="flex-1">
                       <div className="bg-gray-100 rounded-xl px-3 py-2">
-                        <Link to={`/profile/${comment.user_id || comment.Email || comment.username}`} className="font-bold mr-2 hover:underline">
+                        <Link to={`/profile/${comment.user_id || comment.Email || comment.username}`} className="font-bold mr-2 hover:underline cursor-pointer">
                           {comment.username || comment.Email}
                         </Link>
                         <span>{comment.content}</span>
@@ -673,7 +673,7 @@ const PostCard = ({ post, onPostDeleted, onPostUpdated }) => {
                       <div className="flex items-center gap-3 mt-1 ml-3">
                         <button
                           onClick={(e) => handleCommentLike(comment.id, e)}
-                          className="flex items-center gap-1 text-gray-500 hover:text-red-500 transition-colors focus:outline-none"
+                          className="flex items-center gap-1 text-gray-500 hover:text-red-500 transition-colors focus:outline-none cursor-pointer"
                         >
                           <svg
                             className={`w-4 h-4 ${comment.is_liked_by_user ? 'text-red-500 fill-current' : ''}`}
@@ -732,7 +732,7 @@ const PostCard = ({ post, onPostDeleted, onPostUpdated }) => {
             />
             <button
               type="submit"
-              className="text-blue-500 font-semibold text-sm hover:text-blue-700 disabled:text-blue-300 disabled:cursor-not-allowed"
+              className="text-blue-500 font-semibold text-sm hover:text-blue-700 disabled:text-blue-300 disabled:cursor-not-allowed cursor-pointer"
               disabled={!newComment.trim()}
             >
               Đăng
@@ -749,7 +749,7 @@ const PostCard = ({ post, onPostDeleted, onPostUpdated }) => {
               <h2 className="text-2xl font-bold text-gray-800">Sửa bài viết</h2>
               <button
                 onClick={() => setIsEditModalOpen(false)}
-                className="text-gray-500 hover:text-gray-700 text-2xl"
+                className="text-gray-500 hover:text-gray-700 text-2xl cursor-pointer"
               >
                 &times;
               </button>
@@ -799,14 +799,14 @@ const PostCard = ({ post, onPostDeleted, onPostUpdated }) => {
                 <button
                   type="button"
                   onClick={() => setIsEditModalOpen(false)}
-                  className="px-6 py-2.5 border border-gray-300 rounded-lg text-gray-700 font-medium hover:bg-gray-50 transition-colors"
+                  className="px-6 py-2.5 border border-gray-300 rounded-lg text-gray-700 font-medium hover:bg-gray-50 transition-colors cursor-pointer"
                   disabled={isUpdating}
                 >
                   Hủy
                 </button>
                 <button
                   type="submit"
-                  className="px-6 py-2.5 bg-blue-500 text-white rounded-lg font-medium hover:bg-blue-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="px-6 py-2.5 bg-blue-500 text-white rounded-lg font-medium hover:bg-blue-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
                   disabled={isUpdating}
                 >
                   {isUpdating ? 'Đang cập nhật...' : 'Cập nhật'}

@@ -1,12 +1,13 @@
 import React, { useState, useEffect } from 'react'; // Thêm useState, useEffect
 import Sidebar from './Components/Sidebar';
 import TopCreators from './Components/TopCreators';
-import { Outlet, useNavigate } from 'react-router-dom'; // Thêm useNavigate
+import { Outlet, useNavigate, useLocation } from 'react-router-dom'; // Thêm useNavigate
 import { usePopup } from './Components/IsPopup';
 // import { is } from 'date-fns/locale'; // (Bạn không dùng cái này, có thể xóa)
 
 const MainLayout = () => {
   const { isPopup } = usePopup();
+  const location = useLocation();
   
   // --- PHẦN CODE MỚI ---
   const [user, setUser] = useState(null);
@@ -76,10 +77,12 @@ const MainLayout = () => {
             {/* Truyền user xuống cho mọi component con (ChatModal, Feed...) */}
             <Outlet context={{ user }} />
           </div>
-          {/* Right sidebar - ẩn trên mobile và tablet, hiển thị trên desktop */}
-          <div className="hidden lg:block sticky top-0 w-1/4 bg-white-800 p-4 text-white h-screen overflow-auto">
-            <TopCreators />
-          </div>
+          {/* Right sidebar - ẩn trên People page */}
+          {!location.pathname.startsWith('/people') && (
+            <div className="hidden lg:block sticky top-0 w-1/4 bg-white-800 p-4 text-white h-screen overflow-auto">
+              <TopCreators />
+            </div>
+          )}
         </div>
       ) : (
         <div className="flex bg-white-900">
@@ -92,10 +95,12 @@ const MainLayout = () => {
             {/* Truyền user xuống cho mọi component con (ChatModal, Feed...) */}
             <Outlet context={{ user }} />
           </div>
-          {/* Right sidebar - ẩn trên mobile và tablet */}
-          <div className="hidden lg:block sticky top-0 w-1/4 bg-white-800 p-4 text-white h-screen overflow-auto">
-            <TopCreators />
-          </div>
+          {/* Right sidebar - ẩn trên People page */}
+          {!location.pathname.startsWith('/people') && (
+            <div className="hidden lg:block sticky top-0 w-1/4 bg-white-800 p-4 text-white h-screen overflow-auto">
+              <TopCreators />
+            </div>
+          )}
         </div>
       )}
       {/* Mobile bottom navigation - chỉ hiển thị trên mobile */}
