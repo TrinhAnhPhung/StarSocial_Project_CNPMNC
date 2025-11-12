@@ -9,16 +9,18 @@ import { authenticateToken } from '../middlewares/authMiddleware.js';
 
 const PRIMARY_DB = process.env.DB_Name || 'StarSocial_primary'; 
 
+// ===== Only error logging (no info logs) =====
+const err = (...args) => console.error(...args);
+
 // ✅ Lấy danh sách thông báo của user hiện tại
 router.get('/', authenticateToken, async (req, res) => {
   try {
     if (!req.user || !req.user.id) {
-      console.error('GET /notifications: req.user hoặc req.user.id không tồn tại', req.user);
+      err('GET /notifications: req.user hoặc req.user.id không tồn tại', req.user);
       return res.status(401).json({ error: 'Không tìm thấy thông tin người dùng' });
     }
 
     const userId = req.user.id;
-    console.log('GET /notifications: Lấy thông báo cho userId:', userId);
 
     const pool = await notificationConnection(); // ✅ lấy từ DB thông báo
     const result = await pool
@@ -32,22 +34,14 @@ router.get('/', authenticateToken, async (req, res) => {
           n.Content_Id     AS post_id,
           n.Type           AS notification_type,
           CASE
-    WHEN n.Type = 'follow' THEN 
-      N'đã bắt đầu theo dõi bạn.'
-    WHEN n.Type = 'like' THEN 
-      N'đã thích bài viết của bạn.'
-    WHEN n.Type = 'comment' THEN 
-      N'đã bình luận về bài viết của bạn.'
-    WHEN n.Type = 'account_locked' THEN 
-      N'Tài khoản của bạn đã bị khóa tạm thời do vi phạm nhiều lần.'
-    WHEN n.Type = 'account_unlocked' THEN 
-      N'Tài khoản của bạn đã được mở khóa.'
-    WHEN n.Type = 'violation_marked' THEN 
-      N'Bài viết của bạn bị đánh dấu vi phạm tiêu chuẩn cộng đồng.'
-    ELSE 
-      N'Đây là thông báo hệ thống.'
-END AS message,
-
+            WHEN n.Type = 'follow' THEN N'đã bắt đầu theo dõi bạn.'
+            WHEN n.Type = 'like' THEN N'đã thích bài viết của bạn.'
+            WHEN n.Type = 'comment' THEN N'đã bình luận về bài viết của bạn.'
+            WHEN n.Type = 'account_locked' THEN N'Tài khoản của bạn đã bị khóa tạm thời do vi phạm nhiều lần.'
+            WHEN n.Type = 'account_unlocked' THEN N'Tài khoản của bạn đã được mở khóa.'
+            WHEN n.Type = 'violation_marked' THEN N'Bài viết của bạn bị đánh dấu vi phạm tiêu chuẩn cộng đồng.'
+            ELSE N'Đây là thông báo hệ thống.'
+          END AS message,
           n.Is_read        AS is_read,
           n.[Time]         AS created_at,
           u.First_Name + ' ' + u.Last_Name AS actor_username,
@@ -60,11 +54,10 @@ END AS message,
         OFFSET 0 ROWS FETCH NEXT 100 ROWS ONLY
       `);
 
-    console.log(`GET /notifications: Tìm thấy ${result.recordset.length} thông báo`);
     res.json(result.recordset);
   } catch (e) {
-    console.error('GET /notifications error:', e);
-    console.error('Error stack:', e.stack);
+    err('GET /notifications error:', e);
+    err('Error stack:', e.stack);
     res.status(500).json({ error: 'Internal server error', detail: e.message });
   }
 });
@@ -73,14 +66,13 @@ END AS message,
 router.get('/unread-count', authenticateToken, async (req, res) => {
   try {
     if (!req.user || !req.user.id) {
-      console.error('GET /unread-count: req.user hoặc req.user.id không tồn tại', req.user);
+      err('GET /unread-count: req.user hoặc req.user.id không tồn tại', req.user);
       return res.status(401).json({ error: 'Không tìm thấy thông tin người dùng' });
     }
 
     const userId = req.user.id;
-    console.log('GET /unread-count: Lấy số thông báo chưa đọc cho userId:', userId);
 
-    const pool = await notificationConnection(); // ✅ dùng DB thông báo
+    const pool = await notificationConnection(); 
     const result = await pool
       .request()
       .input('userId', sql.VarChar(26), userId)
@@ -92,11 +84,10 @@ router.get('/unread-count', authenticateToken, async (req, res) => {
 
     const countValue = result.recordset[0]?.count;
     const count = countValue ? parseInt(countValue.toString(), 10) : 0;
-    console.log(`GET /unread-count: Tìm thấy ${count} thông báo chưa đọc`);
     res.json({ count });
   } catch (e) {
-    console.error('GET /notifications/unread-count error:', e);
-    console.error('Error stack:', e.stack);
+    err('GET /notifications/unread-count error:', e);
+    err('Error stack:', e.stack);
     res.status(500).json({ error: 'Internal server error', detail: e.message });
   }
 });
@@ -109,8 +100,11 @@ router.patch('/:id/read', authenticateToken, async (req, res) => {
     }
 
     const notifId = parseInt(req.params.id, 10);
+    if (Number.isNaN(notifId)) {
+      return res.status(400).json({ error: 'notifId không hợp lệ' });
+    }
 
-    const pool = await notificationConnection(); // ✅ dùng DB thông báo
+    const pool = await notificationConnection(); 
     await pool
       .request()
       .input('notifId', sql.Int, notifId)
@@ -123,7 +117,7 @@ router.patch('/:id/read', authenticateToken, async (req, res) => {
 
     res.json({ ok: true });
   } catch (e) {
-    console.error('PATCH /notifications/:id/read error:', e);
+    err('PATCH /notifications/:id/read error:', e);
     res.status(500).json({ error: 'Internal server error', detail: e.message });
   }
 });
