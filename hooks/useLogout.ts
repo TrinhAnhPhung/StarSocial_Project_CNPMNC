@@ -24,25 +24,46 @@ export const useLogout = (options: UseLogoutOptions = {}) => {
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const router = useRouter();
 
-  const logout = async () => {
+  const logout = () => {
+    if (isLoggingOut) {
+      console.log('⚠️ useLogout: Đang trong quá trình logout, bỏ qua...');
+      return;
+    }
+
+    console.log('🔘 useLogout: Hàm logout được gọi, showConfirmation:', showConfirmation);
+
     if (showConfirmation) {
-      Alert.alert(
-        confirmationTitle,
-        confirmationMessage,
-        [
-          {
-            text: 'Hủy',
-            style: 'cancel',
-          },
-          {
-            text: 'Đăng xuất',
-            style: 'destructive',
-            onPress: performLogout,
-          },
-        ]
-      );
+      try {
+        Alert.alert(
+          confirmationTitle,
+          confirmationMessage,
+          [
+            {
+              text: 'Hủy',
+              style: 'cancel',
+              onPress: () => {
+                console.log('🚫 useLogout: Người dùng hủy đăng xuất');
+              },
+            },
+            {
+              text: 'Đăng xuất',
+              style: 'destructive',
+              onPress: () => {
+                console.log('✅ useLogout: Người dùng xác nhận đăng xuất từ Alert');
+                performLogout();
+              },
+            },
+          ],
+          { cancelable: true }
+        );
+      } catch (alertError) {
+        console.error('❌ useLogout: Lỗi khi hiển thị Alert, thực hiện logout trực tiếp:', alertError);
+        // Nếu Alert không hoạt động (ví dụ trên web), thực hiện logout trực tiếp
+        performLogout();
+      }
     } else {
-      await performLogout();
+      console.log('✅ useLogout: Bỏ qua xác nhận, thực hiện logout ngay');
+      performLogout();
     }
   };
 
@@ -119,27 +140,40 @@ export const useLogout = (options: UseLogoutOptions = {}) => {
       }
 
       console.log('✅ useLogout: Đã logout hoàn toàn thành công!');
+      
+      // Gọi callback onSuccess nếu có
+      if (onSuccess) {
+        onSuccess();
+      }
+      
+      // Đảm bảo AsyncStorage đã được clear hoàn toàn
+      await new Promise(resolve => setTimeout(resolve, 200));
+      
+      // Chuyển hướng về root route
+      console.log('🔄 useLogout: Đang chuyển hướng về root route (/)...');
+      
+      try {
+        // Thử dùng replace trước
+        router.replace('/');
+        console.log('✅ useLogout: Đã gọi router.replace("/")');
+      } catch (navError) {
+        console.error('❌ useLogout: Lỗi khi replace, thử push:', navError);
+        try {
+          // Fallback: dùng push
+          router.push('/');
+          console.log('✅ useLogout: Đã gọi router.push("/")');
+        } catch (pushError) {
+          console.error('❌ useLogout: Lỗi khi push:', pushError);
+          // Fallback cuối cùng: reload window nếu trên web
+          if (typeof window !== 'undefined') {
+            console.log('🔄 useLogout: Thử reload window...');
+            window.location.href = '/';
+          }
+        }
+      }
+      
+      // Reset state sau khi navigate
       setIsLoggingOut(false);
-
-      // Hiển thị thông báo thành công và chuyển hướng
-      Alert.alert(
-        'Đăng xuất thành công',
-        'Bạn đã đăng xuất thành công. Đang chuyển về trang đăng nhập...',
-        [
-          {
-            text: 'OK',
-            onPress: () => {
-              // Gọi callback onSuccess nếu có
-              if (onSuccess) {
-                onSuccess();
-              }
-              // Luôn chuyển hướng về root route
-              console.log('🔄 useLogout: Đang chuyển hướng về root route (/)...');
-              router.replace('/');
-            },
-          },
-        ]
-      );
     } catch (error: any) {
       setIsLoggingOut(false);
       console.error('❌ useLogout: Lỗi trong quá trình logout:', error);

@@ -8,9 +8,13 @@ import {
   TouchableOpacity,
   View,
   useColorScheme,
+  Animated,
+  RefreshControl,
+  Modal,
+  Dimensions,
 } from "react-native";
 import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState, useRef } from "react";
 import { MaterialIcons } from "@expo/vector-icons";
 import { ThemeBar } from "../component/themeBar";
 import { COLORS } from "../constants/color";
@@ -19,6 +23,8 @@ import BottomNavigation from "../component/BottomNavigation";
 import authService from "../services/authService";
 import apiService from "../services/api";
 import AppLoader from "../component/AppLoader";
+import { LinearGradient } from "expo-linear-gradient";
+import { useRouter } from "expo-router";
 
 type Post = {
   id: string;
@@ -29,12 +35,26 @@ type Post = {
   caption?: string;
   likes: number;
   isSponsor?: boolean;
+  user_id?: string;
+  created_at?: string;
+  comments_count?: number;
 };
 
 type SuggestedUser = {
   id: string;
   username: string;
   avatar?: string;
+  followers_count?: number;
+  is_following?: boolean;
+};
+
+type Follower = {
+  id: string;
+  username: string;
+  first_name?: string;
+  last_name?: string;
+  avatar?: string;
+  is_following?: boolean;
 };
 
 const FALLBACK_IMAGE = "https://via.placeholder.com/400x400?text=Star+Social";
@@ -45,6 +65,8 @@ const DEFAULT_SUGGESTED_USERS: SuggestedUser[] = [
   { id: "suggest-3", username: "Tech Trends" },
 ];
 
+const { width: screenWidth } = Dimensions.get('window');
+
 export default function Explore() {
   const [userData, setUserData] = useState<any>(null);
   const [posts, setPosts] = useState<Post[]>([]);
@@ -52,8 +74,24 @@ export default function Explore() {
   const [isLoading, setIsLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [selectedPost, setSelectedPost] = useState<Post | null>(null);
+  const [showFollowers, setShowFollowers] = useState(false);
+  const [followers, setFollowers] = useState<Follower[]>([]);
+
+  
   const colorScheme = useColorScheme();
-  const theme = COLORS[colorScheme ?? "dark"] ?? COLORS.dark;
+  const theme = {
+    ...COLORS[colorScheme ?? "dark"] ?? COLORS.dark,
+    card_background: colorScheme === 'dark' ? '#1a1a1a' : '#ffffff',
+    border_color: colorScheme === 'dark' ? '#333333' : '#e0e0e0',
+    primary_color: '#5A7DFE'
+  };
+  const router = useRouter();
+  
+  // Animation values
+  const fadeAnim = useRef(new Animated.Value(0)).current;
+  const slideAnim = useRef(new Animated.Value(50)).current;
+  const scaleAnim = useRef(new Animated.Value(0.9)).current;
 
   const loadUserData = useCallback(async () => {
     const data = await authService.getUserData();
@@ -95,7 +133,54 @@ export default function Explore() {
   useEffect(() => {
     loadUserData();
     loadExploreData();
+    
+    // Start animations
+    Animated.parallel([
+      Animated.timing(fadeAnim, {
+        toValue: 1,
+        duration: 800,
+        useNativeDriver: true,
+      }),
+      Animated.timing(slideAnim, {
+        toValue: 0,
+        duration: 600,
+        useNativeDriver: true,
+      }),
+      Animated.spring(scaleAnim, {
+        toValue: 1,
+        tension: 50,
+        friction: 7,
+        useNativeDriver: true,
+      }),
+    ]).start();
   }, [loadExploreData, loadUserData]);
+
+  const loadFollowers = async () => {
+    try {
+      const response = await apiService.getFollowers();
+      if (response.success) {
+        setFollowers(response.data || []);
+      }
+    } catch (error) {
+      console.error('Error loading followers:', error);
+    }
+  };
+
+  const handleFollowUser = async (userId: string) => {
+    try {
+      const response = await apiService.followUser(userId);
+      if (response.success) {
+        // Update followers list
+        setFollowers(prev => prev.map(follower => 
+          follower.id === userId 
+            ? { ...follower, is_following: !follower.is_following }
+            : follower
+        ));
+      }
+    } catch (error) {
+      console.error('Error following user:', error);
+    }
+  };
 
   const filteredPosts = useMemo(
     () => filterPostsByQuery(posts, searchQuery),
@@ -123,57 +208,128 @@ export default function Explore() {
     setSearchQuery(tag);
   };
 
-  const handleSuggestedUserPress = (username: string) => {
-    setSearchQuery(username);
+  const handleSuggestedUserPress = (user: SuggestedUser) => {
+    // Navigate to user profile or show follow options
+    if (user.id.startsWith('suggest-')) {
+      setSearchQuery(user.username);
+    } else {
+      router.push(`/Profile?userId=${user.id}`);
+    }
   };
 
   const handleClearSearch = () => {
     setSearchQuery("");
   };
 
-  const renderPostItem = ({ item }: { item: Post }) => (
-    <TouchableOpacity
-      style={[
-        styles.postCard,
-        {
-          backgroundColor: theme.Text_color + "10",
-          borderColor: theme.Text_color + "15",
-        },
-      ]}
-      activeOpacity={0.85}
-    >
-      <Image
-        source={item.image ? { uri: item.image } : require("../assets/logo.png")}
-        style={styles.postImage}
-        defaultSource={require("../assets/logo.png")}
-      />
-      <View
-        style={[
-          styles.postInfoContainer,
-          { backgroundColor: theme.background_color + "AA" },
-        ]}
+  const handlePostPress = (post: Post) => {
+    setSelectedPost(post);
+  };
+
+  const handleShowFollowers = () => {
+    loadFollowers();
+    setShowFollowers(true);
+  };
+
+  const handleEditProfile = () => {
+    router.push('/EditProfile');
+  };
+
+  // Create PostItem component to use hooks properly
+  const PostItem = React.memo(({ item, index }: { item: Post; index: number }) => {
+    const itemScale = useRef(new Animated.Value(0.9)).current;
+    const itemOpacity = useRef(new Animated.Value(0)).current;
+
+    useEffect(() => {
+      Animated.parallel([
+        Animated.timing(itemOpacity, {
+          toValue: 1,
+          duration: 400,
+          delay: index * 100,
+          useNativeDriver: true,
+        }),
+        Animated.spring(itemScale, {
+          toValue: 1,
+          tension: 50,
+          friction: 7,
+          delay: index * 100,
+          useNativeDriver: true,
+        }),
+      ]).start();
+    }, [index]);
+
+    return (
+      <Animated.View
+        style={{
+          opacity: itemOpacity,
+          transform: [{ scale: itemScale }],
+        }}
       >
-        <Text
-          numberOfLines={1}
-          style={[styles.postUsername, { color: theme.Text_color }]}
+        <TouchableOpacity
+          style={[
+            styles.postCard,
+            {
+              backgroundColor: theme.card_background,
+              borderColor: theme.border_color + "30",
+              shadowColor: theme.Text_color,
+              shadowOffset: { width: 0, height: 4 },
+              shadowOpacity: 0.1,
+              shadowRadius: 8,
+              elevation: 5,
+            },
+          ]}
+          activeOpacity={0.85}
+          onPress={() => handlePostPress(item)}
         >
-          {item.username}
-        </Text>
-        {item.location ? (
-          <Text
-            numberOfLines={1}
-            style={[styles.postLocation, { color: theme.Text_color + "99" }]}
-          >
-            {item.location}
-          </Text>
-        ) : null}
-      </View>
-      {item.isSponsor ? (
-        <View style={[styles.sponsorBadge, { backgroundColor: "#ff9800" }]}>
-          <Text style={styles.sponsorBadgeText}>Tài trợ</Text>
-        </View>
-      ) : null}
-    </TouchableOpacity>
+          <Image
+            source={item.image ? { uri: item.image } : require("../assets/logo.png")}
+            style={styles.postImage}
+            defaultSource={require("../assets/logo.png")}
+          />
+          <LinearGradient
+            colors={['transparent', 'rgba(0,0,0,0.7)']}
+            style={styles.postGradient}
+          />
+          <View style={styles.postInfoContainer}>
+            <Text
+              numberOfLines={1}
+              style={[styles.postUsername, { color: '#ffffff' }]}
+            >
+              {item.username}
+            </Text>
+            {item.location ? (
+              <Text
+                numberOfLines={1}
+                style={[styles.postLocation, { color: '#ffffff99' }]}
+              >
+                <MaterialIcons name="location-on" size={12} color="#ffffff99" />
+                {' '}{item.location}
+              </Text>
+            ) : null}
+            <View style={styles.postStats}>
+              <View style={styles.statItem}>
+                <MaterialIcons name="favorite" size={14} color="#ff4757" />
+                <Text style={styles.statText}>{item.likes}</Text>
+              </View>
+              {item.comments_count ? (
+                <View style={styles.statItem}>
+                  <MaterialIcons name="comment" size={14} color="#ffffff99" />
+                  <Text style={styles.statText}>{item.comments_count}</Text>
+                </View>
+              ) : null}
+            </View>
+          </View>
+          {item.isSponsor ? (
+            <View style={[styles.sponsorBadge, { backgroundColor: "#5A7DFE" }]}>
+              <Text style={styles.sponsorBadgeText}>Tài trợ</Text>
+            </View>
+          ) : null}
+        </TouchableOpacity>
+      </Animated.View>
+    );
+  });
+
+  const renderPostItem = ({ item, index }: { item: Post; index: number }) => (
+    <PostItem item={item} index={index} />
   );
 
   const renderHeader = () => (
@@ -251,30 +407,63 @@ export default function Explore() {
               style={[
                 styles.suggestedCard,
                 {
-                  backgroundColor: theme.Text_color + "10",
-                  borderColor: theme.Text_color + "15",
+                  backgroundColor: theme.card_background,
+                  borderColor: theme.border_color + "30",
+                  shadowColor: theme.Text_color,
+                  shadowOffset: { width: 0, height: 2 },
+                  shadowOpacity: 0.1,
+                  shadowRadius: 4,
+                  elevation: 3,
                 },
               ]}
               activeOpacity={0.75}
-              onPress={() => handleSuggestedUserPress(user.username)}
+              onPress={() => handleSuggestedUserPress(user)}
             >
-              <Image
-                source={
-                  user.avatar
-                    ? { uri: user.avatar }
-                    : require("../assets/logo.png")
-                }
-                style={styles.suggestedAvatar}
-                defaultSource={require("../assets/logo.png")}
-              />
+              <LinearGradient
+                colors={colorScheme === "dark" ? ["#5A7DFE", "#4A6DFE"] : ["#6C63FF", "#5B52FF"]}
+                style={styles.avatarGradient}
+              >
+                <Image
+                  source={
+                    user.avatar
+                      ? { uri: user.avatar }
+                      : require("../assets/logo.png")
+                  }
+                  style={styles.suggestedAvatar}
+                  defaultSource={require("../assets/logo.png")}
+                />
+              </LinearGradient>
               <Text
                 numberOfLines={1}
                 style={[styles.suggestedName, { color: theme.Text_color }]}
               >
                 {user.username}
               </Text>
+              {user.followers_count !== undefined && (
+                <Text style={[styles.followersCount, { color: theme.Text_color + "80" }]}>
+                  {user.followers_count} người theo dõi
+                </Text>
+              )}
             </TouchableOpacity>
           ))}
+          <TouchableOpacity
+            style={[
+              styles.suggestedCard,
+              styles.viewAllCard,
+              {
+                backgroundColor: theme.card_background,
+                borderColor: theme.border_color + "30",
+              },
+            ]}
+            onPress={handleShowFollowers}
+          >
+            <View style={[styles.viewAllIcon, { backgroundColor: theme.primary_color + "20" }]}>
+              <MaterialIcons name="people" size={24} color={theme.primary_color} />
+            </View>
+            <Text style={[styles.suggestedName, { color: theme.Text_color }]}>
+              Xem tất cả
+            </Text>
+          </TouchableOpacity>
         </ScrollView>
       </View>
 
@@ -313,7 +502,18 @@ export default function Explore() {
       >
         <ThemeBar />
         <Header />
-        <View style={styles.content}>
+        <Animated.View 
+          style={[
+            styles.content,
+            {
+              opacity: fadeAnim,
+              transform: [
+                { translateY: slideAnim },
+                { scale: scaleAnim }
+              ]
+            }
+          ]}
+        >
           <FlatList
             data={filteredPosts}
             keyExtractor={(item) => item.id}
@@ -328,18 +528,193 @@ export default function Explore() {
             ListHeaderComponent={renderHeader}
             ListEmptyComponent={
               <View style={styles.emptyContainer}>
+                <MaterialIcons 
+                  name="explore" 
+                  size={64} 
+                  color={theme.Text_color + "40"} 
+                />
                 <Text style={[styles.emptyTitle, { color: theme.Text_color }]}>
                   Không tìm thấy nội dung phù hợp
-          </Text>
+                </Text>
                 <Text style={[styles.emptySubtitle, { color: theme.Text_color + "99" }]}>
                   Thử tìm kiếm từ khóa khác hoặc chọn một hashtag xu hướng.
-          </Text>
+                </Text>
               </View>
             }
-            refreshing={refreshing}
-            onRefresh={handleRefresh}
+            refreshControl={
+              <RefreshControl
+                refreshing={refreshing}
+                onRefresh={handleRefresh}
+                colors={[colorScheme === "dark" ? "#5A7DFE" : "#6C63FF"]}
+                tintColor={colorScheme === "dark" ? "#5A7DFE" : "#6C63FF"}
+              />
+            }
           />
+        </Animated.View>
+
+        {/* Post Detail Modal */}
+        <Modal
+          visible={selectedPost !== null}
+          animationType="slide"
+          presentationStyle="pageSheet"
+          onRequestClose={() => setSelectedPost(null)}
+        >
+          {selectedPost && (
+            <SafeAreaView style={[styles.modalContainer, { backgroundColor: theme.background_color }]}>
+              <View style={[styles.modalHeader, { borderBottomColor: theme.border_color + "30" }]}>
+                <TouchableOpacity onPress={() => setSelectedPost(null)}>
+                  <MaterialIcons name="close" size={24} color={theme.Text_color} />
+                </TouchableOpacity>
+                <Text style={[styles.modalTitle, { color: theme.Text_color }]}>Chi tiết bài viết</Text>
+                <TouchableOpacity>
+                  <MaterialIcons name="more-vert" size={24} color={theme.Text_color} />
+                </TouchableOpacity>
+              </View>
+              
+              <ScrollView style={styles.modalContent}>
+                <Image
+                  source={{ uri: selectedPost.image }}
+                  style={styles.modalImage}
+                  defaultSource={require("../assets/logo.png")}
+                />
+                
+                <View style={styles.modalPostInfo}>
+                  <View style={styles.modalUserInfo}>
+                    <LinearGradient
+                      colors={colorScheme === "dark" ? ["#5A7DFE", "#4A6DFE"] : ["#6C63FF", "#5B52FF"]}
+                      style={styles.modalAvatarGradient}
+                    >
+                      <Image
+                        source={selectedPost.avatar ? { uri: selectedPost.avatar } : require("../assets/logo.png")}
+                        style={styles.modalAvatar}
+                        defaultSource={require("../assets/logo.png")}
+                      />
+                    </LinearGradient>
+                    <View style={styles.modalUserDetails}>
+                      <Text style={[styles.modalUsername, { color: theme.Text_color }]}>
+                        {selectedPost.username}
+                      </Text>
+                      {selectedPost.location && (
+                        <Text style={[styles.modalLocation, { color: theme.Text_color + "80" }]}>
+                          <MaterialIcons name="location-on" size={14} color={theme.Text_color + "80" } />
+                          {' '}{selectedPost.location}
+                        </Text>
+                      )}
+                    </View>
+                  </View>
+                  
+                  {selectedPost.caption && (
+                    <Text style={[styles.modalCaption, { color: theme.Text_color }]}>
+                      {selectedPost.caption}
+                    </Text>
+                  )}
+                  
+                  <View style={styles.modalStats}>
+                    <TouchableOpacity style={styles.modalStatButton}>
+                      <MaterialIcons name="favorite" size={20} color="#ff4757" />
+                      <Text style={[styles.modalStatText, { color: theme.Text_color }]}>
+                        {selectedPost.likes} lượt thích
+                      </Text>
+                    </TouchableOpacity>
+                    
+                    <TouchableOpacity style={styles.modalStatButton}>
+                      <MaterialIcons name="comment" size={20} color={theme.Text_color + "80"} />
+                      <Text style={[styles.modalStatText, { color: theme.Text_color }]}>
+                        {selectedPost.comments_count || 0} bình luận
+                      </Text>
+                    </TouchableOpacity>
+                    
+                    <TouchableOpacity style={styles.modalStatButton}>
+                      <MaterialIcons name="share" size={20} color={theme.Text_color + "80"} />
+                      <Text style={[styles.modalStatText, { color: theme.Text_color }]}>
+                        Chia sẻ
+                      </Text>
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              </ScrollView>
+            </SafeAreaView>
+          )}
+        </Modal>
+
+        {/* Followers Modal */}
+        <Modal
+          visible={showFollowers}
+          animationType="slide"
+          presentationStyle="pageSheet"
+          onRequestClose={() => setShowFollowers(false)}
+        >
+          <SafeAreaView style={[styles.modalContainer, { backgroundColor: theme.background_color }]}>
+            <View style={[styles.modalHeader, { borderBottomColor: theme.border_color + "30" }]}>
+              <TouchableOpacity onPress={() => setShowFollowers(false)}>
+                <MaterialIcons name="close" size={24} color={theme.Text_color} />
+              </TouchableOpacity>
+              <Text style={[styles.modalTitle, { color: theme.Text_color }]}>Người theo dõi</Text>
+              <TouchableOpacity onPress={handleEditProfile}>
+                <MaterialIcons name="edit" size={24} color={theme.Text_color} />
+              </TouchableOpacity>
+            </View>
+            
+            <FlatList
+              data={followers}
+              keyExtractor={(item) => item.id}
+              renderItem={({ item }) => (
+                <View style={[styles.followerItem, { borderBottomColor: theme.border_color + "20" }]}>
+                  <LinearGradient
+                    colors={colorScheme === "dark" ? ["#5A7DFE", "#4A6DFE"] : ["#6C63FF", "#5B52FF"]}
+                    style={styles.followerAvatarGradient}
+                  >
+                    <Image
+                      source={item.avatar ? { uri: item.avatar } : require("../assets/logo.png")}
+                      style={styles.followerAvatar}
+                      defaultSource={require("../assets/logo.png")}
+                    />
+                  </LinearGradient>
+                  
+                  <View style={styles.followerInfo}>
+                    <Text style={[styles.followerName, { color: theme.Text_color }]}>
+                      {item.first_name && item.last_name 
+                        ? `${item.first_name} ${item.last_name}`
+                        : item.username
+                      }
+                    </Text>
+                    <Text style={[styles.followerUsername, { color: theme.Text_color + "80" }]}>
+                      @{item.username}
+                    </Text>
+                  </View>
+                  
+                  <TouchableOpacity
+                    style={[
+                      styles.followButton,
+                      {
+                        backgroundColor: item.is_following ? theme.Text_color + "20" : theme.primary_color,
+                        borderColor: item.is_following ? theme.Text_color + "30" : theme.primary_color,
+                      }
+                    ]}
+                    onPress={() => handleFollowUser(item.id)}
+                  >
+                    <Text style={[
+                      styles.followButtonText,
+                      { color: item.is_following ? theme.Text_color : '#ffffff' }
+                    ]}>
+                      {item.is_following ? 'Đang theo dõi' : 'Theo dõi'}
+          </Text>
+                  </TouchableOpacity>
+                </View>
+              )}
+              contentContainerStyle={styles.followersList}
+              ListEmptyComponent={
+                <View style={styles.emptyFollowers}>
+                  <MaterialIcons name="people-outline" size={64} color={theme.Text_color + "40"} />
+                  <Text style={[styles.emptyFollowersText, { color: theme.Text_color }]}>
+                    Chưa có người theo dõi
+          </Text>
         </View>
+              }
+            />
+          </SafeAreaView>
+        </Modal>
+
         <SafeAreaView edges={["bottom"]}>
           <BottomNavigation userAvatar={userData?.avatar || userData?.profile_picture} />
         </SafeAreaView>
@@ -461,6 +836,13 @@ const styles = StyleSheet.create({
     width: "100%",
     height: "100%",
   },
+  postGradient: {
+    position: "absolute",
+    left: 0,
+    right: 0,
+    bottom: 0,
+    height: "50%",
+  },
   postInfoContainer: {
     position: "absolute",
     left: 0,
@@ -476,6 +858,24 @@ const styles = StyleSheet.create({
   postLocation: {
     fontSize: COLORS.small_font_size,
     marginTop: 2,
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  postStats: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginTop: 4,
+    gap: 12,
+  },
+  statItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+  },
+  statText: {
+    color: "#ffffff99",
+    fontSize: COLORS.small_font_size,
+    fontWeight: "500",
   },
   sponsorBadge: {
     position: "absolute",
@@ -489,6 +889,30 @@ const styles = StyleSheet.create({
     color: "#ffffff",
     fontSize: COLORS.small_font_size,
     fontWeight: "700",
+  },
+  avatarGradient: {
+    width: 52,
+    height: 52,
+    borderRadius: 26,
+    padding: 2,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  followersCount: {
+    fontSize: COLORS.small_font_size - 1,
+    textAlign: "center",
+    marginTop: 2,
+  },
+  viewAllCard: {
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  viewAllIcon: {
+    width: 52,
+    height: 52,
+    borderRadius: 26,
+    alignItems: "center",
+    justifyContent: "center",
   },
   emptyContainer: {
     alignItems: "center",
@@ -504,6 +928,138 @@ const styles = StyleSheet.create({
   emptySubtitle: {
     fontSize: COLORS.medium_font_size,
     textAlign: "center",
+  },
+  // Modal styles
+  modalContainer: {
+    flex: 1,
+  },
+  modalHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+  },
+  modalTitle: {
+    fontSize: COLORS.large_font_size,
+    fontWeight: "600",
+  },
+  modalContent: {
+    flex: 1,
+  },
+  modalImage: {
+    width: "100%",
+    height: screenWidth,
+    backgroundColor: "#f0f0f0",
+  },
+  modalPostInfo: {
+    padding: 16,
+  },
+  modalUserInfo: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 12,
+  },
+  modalAvatarGradient: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    padding: 2,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  modalAvatar: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+  },
+  modalUserDetails: {
+    marginLeft: 12,
+    flex: 1,
+  },
+  modalUsername: {
+    fontSize: COLORS.medium_font_size,
+    fontWeight: "600",
+  },
+  modalLocation: {
+    fontSize: COLORS.small_font_size,
+    marginTop: 2,
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  modalCaption: {
+    fontSize: COLORS.medium_font_size,
+    lineHeight: 20,
+    marginBottom: 16,
+  },
+  modalStats: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 20,
+  },
+  modalStatButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+  },
+  modalStatText: {
+    fontSize: COLORS.small_font_size,
+    fontWeight: "500",
+  },
+  // Followers modal styles
+  followersList: {
+    padding: 16,
+  },
+  followerItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+  },
+  followerAvatarGradient: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    padding: 2,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  followerAvatar: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+  },
+  followerInfo: {
+    flex: 1,
+    marginLeft: 12,
+  },
+  followerName: {
+    fontSize: COLORS.medium_font_size,
+    fontWeight: "600",
+  },
+  followerUsername: {
+    fontSize: COLORS.small_font_size,
+    marginTop: 2,
+  },
+  followButton: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
+    borderWidth: 1,
+  },
+  followButtonText: {
+    fontSize: COLORS.small_font_size,
+    fontWeight: "600",
+  },
+  emptyFollowers: {
+    alignItems: "center",
+    paddingVertical: 60,
+    gap: 12,
+  },
+  emptyFollowersText: {
+    fontSize: COLORS.medium_font_size,
+    fontWeight: "500",
   },
 });
 

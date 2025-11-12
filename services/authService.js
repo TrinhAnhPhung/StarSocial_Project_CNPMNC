@@ -134,6 +134,16 @@ class AuthService {
     }
   }
 
+  async setUserData(userData) {
+    try {
+      await AsyncStorage.setItem(USER_DATA_KEY, JSON.stringify(userData));
+      return { success: true };
+    } catch (error) {
+      console.error('Error setting user data:', error);
+      return { success: false, message: error.message };
+    }
+  }
+
   async getToken() {
     try {
       const token = await AsyncStorage.getItem(AUTH_TOKEN_KEY);

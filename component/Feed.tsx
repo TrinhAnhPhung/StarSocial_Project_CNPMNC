@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
   FlatList,
@@ -6,6 +6,7 @@ import {
   useColorScheme,
   Text,
   RefreshControl,
+  Animated,
 } from 'react-native';
 import { COLORS } from '../constants/color';
 import PostCard from './PostCard';
@@ -178,10 +179,35 @@ export default function Feed() {
     );
   }
 
-  return (
-    <FlatList
-      data={posts}
-      renderItem={({ item }) => (
+  const AnimatedPostCard = React.memo(({ item, index }: { item: Post; index: number }) => {
+    const opacity = useRef(new Animated.Value(0)).current;
+    const translateY = useRef(new Animated.Value(30)).current;
+
+    useEffect(() => {
+      Animated.parallel([
+        Animated.timing(opacity, {
+          toValue: 1,
+          duration: 400,
+          delay: index * 100,
+          useNativeDriver: true,
+        }),
+        Animated.spring(translateY, {
+          toValue: 0,
+          tension: 50,
+          friction: 8,
+          delay: index * 100,
+          useNativeDriver: true,
+        }),
+      ]).start();
+    }, []);
+
+    return (
+      <Animated.View
+        style={{
+          opacity,
+          transform: [{ translateY }],
+        }}
+      >
         <PostCard
           post={item}
           onLike={handleLike}
@@ -190,7 +216,14 @@ export default function Feed() {
           onBookmark={handleBookmark}
           onOptions={handleOptions}
         />
-      )}
+      </Animated.View>
+    );
+  });
+
+  return (
+    <FlatList
+      data={posts}
+      renderItem={({ item, index }) => <AnimatedPostCard item={item} index={index} />}
       keyExtractor={(item) => item.id}
       contentContainerStyle={[
         styles.listContent,
@@ -200,7 +233,8 @@ export default function Feed() {
         <RefreshControl
           refreshing={refreshing}
           onRefresh={handleRefresh}
-          tintColor="#007bff"
+          tintColor={colorScheme === 'dark' ? '#5A7DFE' : '#6C63FF'}
+          colors={[colorScheme === 'dark' ? '#5A7DFE' : '#6C63FF']}
         />
       }
       ListEmptyComponent={
