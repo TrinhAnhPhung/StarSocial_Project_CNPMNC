@@ -1,4 +1,4 @@
-import { View, Text, Image, Animated, StyleSheet, useColorScheme, ActivityIndicator } from "react-native";
+import { Image, Animated, StyleSheet, useColorScheme } from "react-native";
 import { useState, useEffect, useRef, useCallback } from "react";
 import { COLORS } from "../constants/color";
 import { ThemeBar } from "../component/themeBar";
@@ -6,6 +6,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { Redirect, useRouter, useFocusEffect } from "expo-router";
 import authService from "../services/authService";
 import React from "react";
+import AppLoader from "../component/AppLoader";
 
 export default function App() {
     const [showFlashScreen, setShowFlashScreen] = useState(true);
@@ -84,12 +85,7 @@ export default function App() {
         return (
             <SafeAreaView style={{ flex: 1, backgroundColor: theme.background_color }}>
                 <ThemeBar />
-                <View style={[styles.container, { backgroundColor: theme.background_color }]}>
-                    <ActivityIndicator size="large" color="#007bff" />
-                    <Text style={{ marginTop: 10, color: theme.Text_color }}>
-                        Đang kiểm tra...
-                    </Text>
-                </View>
+                <AppLoader message="Đang kiểm tra..." />
             </SafeAreaView>
         );
     }

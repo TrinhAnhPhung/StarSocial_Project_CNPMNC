@@ -4,7 +4,6 @@ import {
   FlatList,
   StyleSheet,
   useColorScheme,
-  ActivityIndicator,
   Text,
   RefreshControl,
 } from 'react-native';
@@ -12,6 +11,7 @@ import { COLORS } from '../constants/color';
 import PostCard from './PostCard';
 import apiService from '../services/api';
 import authService from '../services/authService';
+import AppLoader from './AppLoader';
 
 type Post = {
   id: string;
@@ -167,12 +167,14 @@ export default function Feed() {
 
   if (loading) {
     return (
-      <View style={[styles.loadingContainer, { backgroundColor: theme.background_color }]}>
-        <ActivityIndicator size="large" color="#007bff" />
-        <Text style={[styles.loadingText, { color: theme.Text_color }]}>
-          Đang tải bài đăng...
-        </Text>
-      </View>
+      <AppLoader
+        message="Đang tải bài đăng..."
+        containerStyle={[
+          styles.loadingContainer,
+          { backgroundColor: theme.background_color },
+        ]}
+        logoSize={64}
+      />
     );
   }
 
@@ -218,13 +220,7 @@ const styles = StyleSheet.create({
   },
   loadingContainer: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingVertical: 50,
-  },
-  loadingText: {
-    marginTop: 10,
-    fontSize: COLORS.medium_font_size,
+    paddingVertical: 40,
   },
   emptyContainer: {
     flex: 1,

@@ -1,23 +1,43 @@
-import { StyleSheet, Text, View, useColorScheme, ScrollView, TouchableOpacity, Alert, ActivityIndicator } from "react-native";
+import { StyleSheet, Text, View, useColorScheme, ScrollView, TouchableOpacity, Alert } from "react-native";
 import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
 import { ThemeBar } from "../component/themeBar";
 import { COLORS } from "../constants/color";
 import Header from "../component/Header";
 import BottomNavigation from "../component/BottomNavigation";
 import { useState, useEffect } from "react";
-import { useRouter } from "expo-router";
 import authService from "../services/authService";
 import { getAvatarUrl } from "../utils/imageUtils";
 import { Image } from "react-native";
 import { MaterialIcons } from '@expo/vector-icons';
+import { useLogout } from "../hooks/useLogout";
+import AppLoader from "../component/AppLoader";
 
 export default function Profile() {
   const [userData, setUserData] = useState<any>(null);
-  const [isLoggingOut, setIsLoggingOut] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const colorScheme = useColorScheme();
   const theme = COLORS[colorScheme ?? 'dark'] ?? COLORS.dark;
-  const router = useRouter();
+  const { logout, isLoggingOut } = useLogout({
+    onError: (error) => {
+      Alert.alert(
+        'Lỗi đăng xuất',
+        `Không thể đăng xuất: ${error}\n\nVui lòng thử lại hoặc khởi động lại app.`,
+        [
+          {
+            text: 'Thử lại',
+            onPress: () => {
+              // Gọi lại logout với showConfirmation = false để không hiện dialog xác nhận lại
+              logout();
+            },
+          },
+          {
+            text: 'OK',
+            style: 'default',
+          },
+        ]
+      );
+    },
+  });
 
   useEffect(() => {
     loadUserData();
@@ -35,80 +55,6 @@ export default function Profile() {
     }
   };
 
-  const handleLogout = async () => {
-    Alert.alert(
-      'Đăng xuất',
-      'Bạn có chắc chắn muốn đăng xuất?',
-      [
-        { 
-          text: 'Hủy', 
-          style: 'cancel' 
-        },
-        {
-          text: 'Đăng xuất',
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              setIsLoggingOut(true);
-              console.log('🔄 Profile: Bắt đầu quá trình đăng xuất...');
-              
-              // Thực hiện logout
-              const logoutResult = await authService.logout();
-              
-              if (logoutResult && !logoutResult.success) {
-                setIsLoggingOut(false);
-                console.error('❌ Profile: Lỗi logout:', logoutResult.message);
-                Alert.alert('Lỗi', `Không thể đăng xuất: ${logoutResult.message || 'Lỗi không xác định'}`);
-                return;
-              }
-              
-              console.log('✅ Profile: Logout thành công, đang chuyển hướng...');
-              
-              // Đợi một chút để đảm bảo AsyncStorage đã được xóa
-              await new Promise(resolve => setTimeout(resolve, 300));
-              
-              // Kiểm tra lại xem đã logout chưa
-              const finalCheck = await authService.isAuthenticated();
-              if (finalCheck) {
-                console.warn('⚠️ Profile: Vẫn còn authenticated, force clear...');
-                try {
-                  const AsyncStorage = require('@react-native-async-storage/async-storage').default;
-                  await AsyncStorage.multiRemove(['auth_token', 'user_data']);
-                  await new Promise(resolve => setTimeout(resolve, 200));
-                } catch (clearError) {
-                  console.error('❌ Profile: Lỗi khi force xóa:', clearError);
-                }
-              }
-              
-              setIsLoggingOut(false);
-              
-              // Chuyển hướng về trang login
-              console.log('🔄 Profile: Đang chuyển hướng về trang đăng nhập...');
-              router.replace('/');
-              
-            } catch (error: any) {
-              setIsLoggingOut(false);
-              console.error('❌ Profile: Lỗi trong quá trình logout:', error);
-              Alert.alert(
-                'Lỗi đăng xuất',
-                `Đã xảy ra lỗi: ${error?.message || 'Lỗi không xác định'}\n\nVui lòng thử lại.`,
-                [
-                  {
-                    text: 'Thử lại',
-                    onPress: handleLogout
-                  },
-                  {
-                    text: 'OK',
-                    style: 'default'
-                  }
-                ]
-              );
-            }
-          },
-        },
-      ]
-    );
-  };
 
   if (isLoggingOut) {
     return (
@@ -116,12 +62,7 @@ export default function Profile() {
         <SafeAreaView style={[styles.container, { backgroundColor: theme.background_color }]}>
           <ThemeBar />
           <Header />
-          <View style={[styles.loadingContainer, { backgroundColor: theme.background_color }]}>
-            <ActivityIndicator size="large" color="#007bff" />
-            <Text style={[styles.loadingText, { color: theme.Text_color }]}>
-              Đang đăng xuất...
-            </Text>
-          </View>
+          <AppLoader message="Đang đăng xuất..." />
         </SafeAreaView>
       </SafeAreaProvider>
     );
@@ -133,12 +74,7 @@ export default function Profile() {
         <SafeAreaView style={[styles.container, { backgroundColor: theme.background_color }]}>
           <ThemeBar />
           <Header />
-          <View style={[styles.loadingContainer, { backgroundColor: theme.background_color }]}>
-            <ActivityIndicator size="large" color="#007bff" />
-            <Text style={[styles.loadingText, { color: theme.Text_color }]}>
-              Đang tải thông tin...
-            </Text>
-          </View>
+          <AppLoader message="Đang tải thông tin..." />
         </SafeAreaView>
       </SafeAreaProvider>
     );
@@ -166,9 +102,8 @@ export default function Profile() {
                       }
                       style={styles.avatar}
                       defaultSource={require('../assets/logo.png')}
-                      onError={(e) => {
-                        e.target.onerror = null;
-                        e.target.source = require('../assets/logo.png');
+                      onError={() => {
+                        console.log('Lỗi khi tải avatar, sử dụng ảnh mặc định');
                       }}
                     />
                   </View>
@@ -213,7 +148,7 @@ export default function Profile() {
 
                   <TouchableOpacity
                     style={[styles.menuItem, styles.logoutButton, { backgroundColor: '#dc3545' }]}
-                    onPress={handleLogout}
+                    onPress={logout}
                     activeOpacity={0.8}
                     disabled={isLoggingOut}
                   >
@@ -250,16 +185,6 @@ const styles = StyleSheet.create({
   },
   content: {
     padding: 20,
-  },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingVertical: 50,
-  },
-  loadingText: {
-    marginTop: 10,
-    fontSize: COLORS.medium_font_size,
   },
   profileHeader: {
     alignItems: 'center',

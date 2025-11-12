@@ -25,9 +25,9 @@ export default function BottomNavigation({ userAvatar }: BottomNavigationProps) 
   const navigationItems = [
     { path: '/Home', iconName: 'home', label: 'Trang chủ' },
     { path: '/Explore', iconName: 'explore', label: 'Khám phá' },
-    { path: '/CreatePost', iconName: 'add_circle_outline', label: 'Tạo bài' },
+    { path: '/CreatePost', iconName: 'add-circle-outline', label: 'Tạo bài' },
     { path: '/Activity', iconName: 'notifications', label: 'Hoạt động' },
-    { path: '/Profile', iconName: null, label: 'Cá nhân' },
+    { path: '/Profile', iconName: 'person', label: 'Cá nhân' },
   ];
 
   return (
@@ -35,18 +35,28 @@ export default function BottomNavigation({ userAvatar }: BottomNavigationProps) 
       {navigationItems.map((item, index) => {
         const active = isActive(item.path);
         
-        if (item.path === '/Profile' && userAvatar) {
+        // Hiển thị avatar nếu có, nếu không thì hiển thị icon person
+        if (item.path === '/Profile') {
           return (
             <TouchableOpacity
               key={index}
               onPress={() => router.push(item.path as any)}
               style={styles.navItem}
+              activeOpacity={0.7}
             >
-              <Image
-                source={{ uri: userAvatar }}
-                style={[styles.profileAvatar, active && styles.activeProfile]}
-                defaultSource={require('../assets/logo.png')}
-              />
+              {userAvatar ? (
+                <Image
+                  source={{ uri: userAvatar }}
+                  style={[styles.profileAvatar, active && styles.activeProfile]}
+                  defaultSource={require('../assets/logo.png')}
+                />
+              ) : (
+                <MaterialIcons
+                  name="person"
+                  size={24}
+                  color={active ? '#007bff' : theme.Text_color + '80'}
+                />
+              )}
             </TouchableOpacity>
           );
         }
