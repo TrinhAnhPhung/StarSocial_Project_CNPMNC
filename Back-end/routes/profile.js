@@ -1,20 +1,23 @@
 import express from 'express';
-import { createRequire } from 'module';
-const require = createRequire(import.meta.url);
+// 'createRequire' không cần thiết nếu bạn không dùng 'require'
 const router = express.Router();
-import { authenticateToken } from '../middlewares/authenticateToken.js'; 
 
-// 1. Import middleware 'upload' (ĐẢM BẢO BẠN ĐÃ TẠO FILE NÀY)
+// 1. Import các middleware cần thiết
+// ✅ SỬA: Import cả 'authenticateToken' và 'optionalAuth'
+import { authenticateToken, optionalAuth } from '../middlewares/authenticateToken.js'; 
 import { upload } from '../middlewares/upload.js'; 
 
+// 2. Import các controller
 import { 
     getMe, 
     getProfileInfo, 
     getProfileImage,
     updateMe,
     updateProfilePicture,
-    getUserProfile // Import hàm mới
+    getUserProfile
 } from '../controllers/profileController.js';
+
+// === CÁC ROUTE CẦN XÁC THỰC (Token bắt buộc) ===
 
 // Route lấy thông tin user (token)
 router.get('/me', authenticateToken, getMe);
@@ -22,51 +25,32 @@ router.get('/me', authenticateToken, getMe);
 // Route cập nhật thông tin text (token)
 router.put('/me', authenticateToken, updateMe);
 
+/**
+ * @route   PUT /api/profile/picture
+ * @desc    Cập nhật ảnh đại diện (token)
+ * @access  Private
+ */
+router.put(
+    '/picture', 
+    authenticateToken, 
+    upload, // Middleware multer
+    updateProfilePicture
+);
+
+// === CÁC ROUTE CÔNG KHAI (Không cần token) ===
+
 // Route lấy thông tin (công khai, qua email)
 router.get('/info', getProfileInfo); 
 
 // Route lấy ảnh (công khai, qua email)
 router.get('/image', getProfileImage);
 
-// Route lấy thông tin profile của người dùng khác (theo userId)
-// QUAN TRỌNG: Phải đặt route /:userId ở cuối cùng để tránh conflict với /me, /info, /image
-// Sử dụng optionalAuth để cho phép xem profile mà không cần đăng nhập
-const optionalAuth = (req, res, next) => {
-    const authHeader = req.headers['authorization'];
-    const token = authHeader && authHeader.split(' ')[1];
-    
-    if (!token) {
-        req.user = null;
-        return next();
-    }
-    
-    // Nếu có token, verify và gán vào req.user
-    try {
-        const jwt = require('jsonwebtoken');
-        const decoded = jwt.verify(token, process.env.JWT_SECRET || 'your-secret-key');
-        req.user = { id: decoded.userId };
-    } catch (err) {
-        req.user = null;
-    }
-    next();
-};
+// === ROUTE ĐẶC BIỆT (Token không bắt buộc) ===
 
-// Route này phải đặt ở cuối cùng để tránh conflict
+// ✅ SỬA: Xóa bỏ hàm 'optionalAuth' inline
+// ✅ SỬA: Sử dụng 'optionalAuth' đã import từ file middleware
+// QUAN TRỌNG: Phải đặt route /:userId ở cuối cùng
 router.get('/:userId', optionalAuth, getUserProfile);
 
-/**
- * @route   PUT /api/profile/picture
- * @desc    Cập nhật ảnh đại diện (token)
- * @access  Private
- */
-// 3. THÊM ROUTE MỚI NÀY
-// Chạy 'authenticateToken' trước, sau đó 'upload' (multer)
-router.put(
-    '/picture', 
-    authenticateToken, 
-    upload, // Middleware multer sẽ tìm file tên 'profileImage'
-    updateProfilePicture
-);
 
 export default router;
-
