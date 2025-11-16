@@ -19,8 +19,12 @@ import http from 'http';
 import { Server } from 'socket.io';
 
 // Import logic controller chat
-// (Đảm bảo đường dẫn này chính xác)
 import { sendMessage } from './controllers/chatController.js'; 
+
+// Imprt handle routes
+import handleRoutes from './routes/handle.js';
+
+
 
 // Import các routes của bạn
 import authRoutes from './routes/auth.js'; 
@@ -80,6 +84,7 @@ app.use('/api/users/suggestions', suggestionRoutes);
 app.use('/api/notifications', notificationsRoutes);
 app.use('/api/reports', reportsRoutes);
 app.use('/api/admin', adminRoutes);
+app.use('/api/handle', handleRoutes);
 
 // --- 2. Tạo HTTP server và gắn Socket.io ---
 const server = http.createServer(app); // Tạo server từ app Express

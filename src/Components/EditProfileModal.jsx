@@ -1,3 +1,4 @@
+// src/Components/EditProfileModal.jsx
 import React, { useState, useEffect, useRef } from 'react';
 // Thêm các icon cho phần tải ảnh
 import { FaTimes, FaSpinner, FaCamera } from 'react-icons/fa';
@@ -123,7 +124,7 @@ const EditProfileModal = ({ isOpen, onClose, userProfile, onProfileUpdate, linkB
     };
 
     return (
-        <div className="fixed inset-0  bg-opacity-50 z-40 flex items-center justify-center p-4">
+        <div className="fixed inset-0 bg-[rgba(0,0,0,0.30)] backdrop-blur-[1px] z-40 flex items-center justify-center p-4">
             <div className="bg-white rounded-lg shadow-xl w-full max-w-lg p-6 z-50 max-h-[90vh] overflow-y-auto border-2 border-gray-300">
                 <div className="flex justify-between items-center mb-4">
                     <h2 className="text-2xl font-bold">Chỉnh sửa hồ sơ</h2>

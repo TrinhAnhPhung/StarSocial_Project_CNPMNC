@@ -2,9 +2,8 @@ import React, { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { useOutletContext } from "react-router-dom";
 import { io } from "socket.io-client"; 
-import { usePopup } from "../IsPopup"; // Sửa đường dẫn
+import { usePopup } from "../IsPopup"; 
 
-// ✅ IMPORT CÁC COMPONENT CON
 import ChatSidebar from "./ChatSidebar";
 import ChatWindow from "./ChatWindow";
 import ChatSettingsPanel from "./ChatSettingsPanel";

@@ -1,6 +1,4 @@
-// ✅ SỬA LỖI: Chuyển sang cú pháp MSSQL
-// Giả sử file db.js của bạn export { sql, connection }
-// Nếu không, hãy sửa đường dẫn này cho đúng
+// Back-end/controllers/postController.js
 import { createRequire } from 'module';
 const require = createRequire(import.meta.url);
 const { sql, connection } = require('../src/Config/SqlConnection.js'); 
@@ -120,7 +118,7 @@ const toggleLike = async (req, res) => {
             
             const likesCount = parseInt(likeCountResult.recordset[0].count) || 0;
 
-            // ✅ THÔNG BÁO LIKE: người khác thích bài viết của tôi
+            //  THÔNG BÁO LIKE: người khác thích bài viết của tôi
             try {
                 if (postOwnerId && String(postOwnerId) !== String(userId)) {
                     const notifPool = await notificationConnection();
@@ -133,10 +131,10 @@ const toggleLike = async (req, res) => {
                             INSERT INTO dbo.NotificationTable (Time, Content_Id, Creator_Id, User_Id, Type, Is_read)
                             VALUES (GETDATE(), @Content_Id, @Creator_Id, @User_Id, @Type, 0)
                         `);
-                    console.log(`✅ Notification like: ${userId} → post ${postIdNum} (owner ${postOwnerId})`);
+                    console.log(` Notification like: ${userId} → post ${postIdNum} (owner ${postOwnerId})`);
                 }
             } catch (notifErr) {
-                console.error('⚠️ Lỗi khi tạo notification like:', notifErr);
+                console.error(' Lỗi khi tạo notification like:', notifErr);
             }
             
             res.status(200).json({ 
@@ -163,34 +161,62 @@ const toggleLike = async (req, res) => {
 
 // --- CHỨC NĂNG THÊM BÌNH LUẬN ---
 const addComment = async (req, res) => {
-    const { postId } = req.params;
-    const userId = req.user.id; 
-    const { content } = req.body; 
+    const { postId } = req.params;
+    const userId = req.user.id; 
+    const { content } = req.body; 
 
-    if (!content || content.trim() === '') {
-        return res.status(400).json({ error: 'Nội dung bình luận là bắt buộc.' });
-    }
+    if (!content || content.trim() === '') {
+        return res.status(400).json({ error: 'Nội dung bình luận là bắt buộc.' });
+    }
 
-    // Validate postId - chuyển sang number nếu có thể
-    const postIdNum = parseInt(postId, 10);
-    if (!postId || isNaN(postIdNum) || postIdNum <= 0) {
-        return res.status(400).json({ error: 'ID bài viết không hợp lệ.' });
-    }
+    // Validate postId - chuyển sang number nếu có thể
+    const postIdNum = parseInt(postId, 10);
+    if (!postId || isNaN(postIdNum) || postIdNum <= 0) {
+        return res.status(400).json({ error: 'ID bài viết không hợp lệ.' });
+    }
 
-    try {
-        const pool = await connection();
-        
-        // Kiểm tra post có tồn tại không + lấy luôn chủ bài viết
-        const postCheck = await pool.request()
-            .input('post_id', sql.BigInt, postIdNum)
-            .query('SELECT Post_id, user_id FROM [Post] WHERE Post_id = @post_id'); // ✅ thêm user_id
-        
-        if (postCheck.recordset.length === 0) {
-            return res.status(404).json({ error: 'Không tìm thấy bài viết.' });
-        }
+    try {
+        const pool = await connection();
+        
+        // Kiểm tra post có tồn tại không + lấy luôn chủ bài viết
+        const postCheck = await pool.request()
+            .input('post_id', sql.BigInt, postIdNum)
+            .query('SELECT Post_id, user_id FROM [Post] WHERE Post_id = @post_id');
+        
+        if (postCheck.recordset.length === 0) {
+            return res.status(404).json({ error: 'Không tìm thấy bài viết.' });
+        }
 
-        const postOwnerId = postCheck.recordset[0].user_id; // ✅ dùng cho notification
-        
+        const postOwnerId = postCheck.recordset[0].user_id; //  dùng cho notification
+        
+        // --- KIỂM TRA TỪ CẤM (ĐÃ NÂNG CẤP) ---
+        try {
+            const keywordsResult = await pool.request().query('SELECT Keyword FROM [SensitiveKeywords]');
+            
+            if (keywordsResult.recordset.length > 0) {
+                // Lấy danh sách từ cấm (đã chuyển sang chữ thường)
+                const sensitiveKeywords = keywordsResult.recordset.map(k => k.Keyword.toLowerCase());
+                
+                // Lấy nội dung comment và chuyển sang chữ thường
+                const commentContentLower = content.trim().toLowerCase();
+                
+                // --- ✅ ĐÂY LÀ DÒNG THAY ĐỔI ---
+                // Chuẩn hóa comment: xóa tất cả dấu cách (\s), dấu chấm (\.), dấu gạch ngang (\-)
+                const normalizedComment = commentContentLower.replace(/[\s\.\-]/g, '');
+                // ------------------------------
+
+                // So sánh BÌNH LUẬN ĐÃ CHUẨN HÓA với từ cấm
+                // Quan trọng: Từ cấm trong CSDL của bạn phải được viết LIỀN (ví dụ: "djtmoe")
+                const foundSensitiveWord = sensitiveKeywords.find(keyword => normalizedComment.includes(keyword));
+
+                if (foundSensitiveWord) {
+                    console.warn(`[addComment] Bình luận bị chặn (user: ${userId}, post: ${postIdNum}) do chứa: "${foundSensitiveWord}" (Nội dung gốc: "${content}")`);
+                    return res.status(400).json({ error: 'Bình luận của bạn chứa nội dung không phù hợp và đã bị chặn.' });
+                }
+            }
+        } catch (keywordError) {
+            console.error("⚠️ Lỗi khi kiểm tra từ cấm (tạm thời cho qua):", keywordError.message);
+        }
         // 1. Chèn bình luận mới
         // Sử dụng OUTPUT INTO table variable vì bảng Comment có trigger
         let result;
@@ -805,7 +831,7 @@ const deletePost = async (req, res) => {
                     .query('DELETE FROM [Likes] WHERE post_id = @post_id');
             } catch (likeError2) {
                 // Có thể không có likes nào - không throw error
-                console.warn("⚠️ Không thể xóa Likes với Post_id (có thể không có):", likeError2?.message || likeError2);
+                console.warn(" Không thể xóa Likes với Post_id (có thể không có):", likeError2?.message || likeError2);
             }
         }
 
@@ -824,7 +850,7 @@ const deletePost = async (req, res) => {
     }
 };
 
-// ✅ ĐÃ SỬA: Chuyển sang CommonJS
+// Chuyển sang CommonJS
 export {
     toggleLike,
     addComment,
