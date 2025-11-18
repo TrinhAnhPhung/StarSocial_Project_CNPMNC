@@ -16,11 +16,11 @@ const linkBackend = import.meta.env.VITE_Link_backend || 'http://localhost:5000'
 
 const StatusBadge = ({ status, isLocked }) => {
   const baseClasses = "px-3 py-1 text-xs rounded-full font-bold";
-  
+
   if (isLocked) {
     return <span className={`${baseClasses} bg-red-900/50 text-red-300`}>Banned</span>;
   }
-  
+
   const statusClasses = {
     Active: 'bg-green-900/50 text-green-300',
     active: 'bg-green-900/50 text-green-300',
@@ -33,7 +33,7 @@ const StatusBadge = ({ status, isLocked }) => {
     Suspended: 'bg-orange-900/50 text-orange-300',
     suspended: 'bg-orange-900/50 text-orange-300',
   };
-  
+
   const displayStatus = status || 'Active';
   return <span className={`${baseClasses} ${statusClasses[displayStatus] || statusClasses.Active}`}>
     {displayStatus}
@@ -60,7 +60,7 @@ const Sidebar = ({ onLogoutClick, userEmail }) => {
           </a>
         </nav>
       </div>
-      
+
       {/* THAY ĐỔI: User Info và Logout (Dark Theme) */}
       <div className="border-t border-slate-700 p-4">
         {/* Box thông tin user */}
@@ -77,7 +77,7 @@ const Sidebar = ({ onLogoutClick, userEmail }) => {
             <p className="text-xs text-slate-400">Administrator</p>
           </div>
         </div>
-        
+
         {/* Nút Logout */}
         <button
           onClick={onLogoutClick}
@@ -123,6 +123,9 @@ const MonthlyStats = ({ users }) => {
     users.forEach(user => {
       if (user.joined_date) {
         const date = new Date(user.joined_date);
+        // FIX: Bỏ qua ngày không hợp lệ
+        if (isNaN(date.getTime())) return; 
+        
         const month = date.toLocaleString('en-us', { month: 'long' });
         const year = date.getFullYear();
         const key = `${month} ${year}`;
@@ -148,7 +151,7 @@ const MonthlyStats = ({ users }) => {
           size={20} 
         />
       </button>
-      
+
       {isOpen && (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 animate-fade-in mt-4">
           {Object.entries(monthlyData).map(([month, count]) => (
@@ -206,7 +209,7 @@ const UserTable = ({ users, searchTerm, onEdit, onDelete, onToggleLock, loading,
             const isActionLoading = actionLoading[user.id];
             const isCurrentUser = user.id === currentUserId;
             const isAdmin = user.role?.toLowerCase() === 'admin';
-            
+
             return (
               <tr key={user.id} className="border-t border-slate-700 hover:bg-slate-800/60">
                 <td className="p-4 font-medium text-slate-100">{user.email}</td>
@@ -214,13 +217,19 @@ const UserTable = ({ users, searchTerm, onEdit, onDelete, onToggleLock, loading,
                 <td className="p-4"><StatusBadge status={user.status} isLocked={user.isLocked} /></td>
                 <td className="p-4 text-slate-300">{user.role || 'user'}</td>
                 <td className="p-4 text-slate-300">
-                  {user.joined_date 
-                    ? new Date(user.joined_date).toLocaleDateString('en-US', {
-                        month: 'long',
-                        day: 'numeric',
-                        year: 'numeric',
-                      })
-                    : 'N/A'}
+                  {/* SỬA CHỮA: Xử lý ngày tháng */}
+                  {(() => {
+                    if (!user.joined_date) return 'N/A';
+                    const date = new Date(user.joined_date);
+                    // Kiểm tra nếu là ngày không hợp lệ
+                    if (isNaN(date.getTime())) return 'Invalid Date'; 
+
+                    return date.toLocaleDateString('en-US', {
+                      month: 'long',
+                      day: 'numeric',
+                      year: 'numeric',
+                    });
+                  })()}
                 </td>
                 <td className="p-4 text-center">
                   <div className="flex items-center justify-center gap-2">
@@ -277,23 +286,19 @@ const ConfirmModal = ({ isOpen, onClose, onConfirm, loading, title, message, con
     blue: 'bg-blue-600 hover:bg-blue-700',
     orange: 'bg-orange-600 hover:bg-orange-700',
   };
-  
+
   const iconBgClasses = {
     red: 'bg-red-900/50',
     orange: 'bg-orange-900/50',
+    blue: 'bg-blue-900/50', // Thêm màu xanh cho Unlock
   };
-
-  const iconTextClasses = {
-    red: 'text-red-300',
-    orange: 'text-orange-300',
-  }
 
   return (
     <div className="fixed inset-0 bg-[rgba(0,0,0,0.30)] backdrop-blur-[1px] z-[99] flex justify-center items-center p-4">
       <div className="bg-slate-900 rounded-lg shadow-xl w-full max-w-sm border border-slate-700">
         <div className="p-6">
-          <div className="flex items-center space-x-3">
-            <div className={`mx-auto flex-shrink-0 flex items-center justify-center h-12 w-12 rounded-full ${iconBgClasses[confirmColor]} sm:mx-0`}>
+          <div className="flex items-start space-x-3">
+            <div className={`flex-shrink-0 flex items-center justify-center h-12 w-12 rounded-full ${iconBgClasses[confirmColor]} sm:mx-0`}>
               {icon}
             </div>
             <div>
@@ -331,10 +336,17 @@ const LogoutConfirmModal = ({ isOpen, onClose, onConfirm }) => {
     <div className="fixed inset-0 bg-[rgba(0,0,0,0.30)] backdrop-blur-[1px] z-[99] flex justify-center items-center p-4">
       <div className="bg-slate-900 rounded-lg shadow-xl w-full max-w-sm border border-slate-700">
         <div className="p-6">
-          <h3 className="text-lg font-semibold text-slate-100">Xác nhận Đăng xuất</h3>
-          <p className="mt-2 text-sm text-slate-400">
-            Bạn có chắc chắn muốn đăng xuất không?
-          </p>
+          <div className="flex items-start space-x-3">
+            <div className={`flex-shrink-0 flex items-center justify-center h-12 w-12 rounded-full bg-red-900/50`}>
+              <FiLogOut className='h-6 w-6 text-red-300'/>
+            </div>
+            <div>
+              <h3 className="text-lg font-semibold text-slate-100">Xác nhận Đăng xuất</h3>
+              <p className="mt-2 text-sm text-slate-400">
+                Bạn có chắc chắn muốn đăng xuất không?
+              </p>
+            </div>
+          </div>
         </div>
         <div className="flex justify-end space-x-3 bg-slate-800 p-4 rounded-b-lg">
           <button
@@ -397,7 +409,7 @@ const AdminPage = () => {
           'Content-Type': 'application/json'
         }
       });
-      
+
       const usersData = (response.data || []).map(user => ({
         ...user,
         id: user.id,
@@ -407,11 +419,12 @@ const AdminPage = () => {
         last_name: user.last_name,
         role: user.role || 'user',
         status: user.status || (user.isLocked ? 'Banned' : 'Active'),
-        joined_date: user.joined_date || user.created_at,
+        // SỬA: Đảm bảo có giá trị ngày tháng, nếu không có thì là null
+        joined_date: user.joined_date || user.created_at || null, 
         created_at: user.created_at,
         isLocked: user.isLocked || false,
       }));
-      
+
       setUsers(usersData);
     } catch (err) {
       console.error('Error fetching users:', err);
@@ -449,7 +462,7 @@ const AdminPage = () => {
     setEditingUser(user);
     setModalOpen(true);
   };
-  
+
   const handleDeleteUser = (userToDelete) => {
     if (userToDelete.id === currentUserId) {
       showToast('Bạn không thể xóa chính mình', 'error');
@@ -468,14 +481,14 @@ const AdminPage = () => {
 
     try {
       setActionLoading((prev) => ({ ...prev, [userToActOn.id]: true }));
-      
+
       await axios.delete(`${linkBackend}/api/admin/users/${userToActOn.id}`, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
         }
       });
-      
+
       await fetchUsers();
       showToast(`Đã xóa người dùng ${userToActOn.email} thành công`, 'success');
     } catch (err) {
@@ -508,7 +521,7 @@ const AdminPage = () => {
 
     try {
       setActionLoading((prev) => ({ ...prev, [userToActOn.id]: true }));
-      
+
       await axios.patch(
         `${linkBackend}/api/admin/users/${userToActOn.id}/lock`,
         { isLocked: !userToActOn.isLocked },
@@ -519,7 +532,7 @@ const AdminPage = () => {
           }
         }
       );
-      
+
       await fetchUsers();
       showToast(`Đã ${action} người dùng ${userToActOn.email} thành công`, 'success');
     } catch (err) {
@@ -540,14 +553,14 @@ const AdminPage = () => {
   const handleSaveUser = async (userData) => {
     try {
       setModalLoading(true);
-      
+
       if (editingUser) {
         const updateData = {
           first_name: userData.first_name,
           last_name: userData.last_name,
           role: userData.role,
         };
-        
+
         if (userData.password && userData.password.trim()) {
           updateData.password = userData.password;
         }
@@ -562,7 +575,7 @@ const AdminPage = () => {
             }
           }
         );
-        
+
         showToast(`Đã cập nhật người dùng ${editingUser.email} thành công`, 'success');
       } else {
         await axios.post(
@@ -581,10 +594,10 @@ const AdminPage = () => {
             }
           }
         );
-        
+
         showToast(`Đã tạo người dùng ${userData.email} thành công`, 'success');
       }
-      
+
       await fetchUsers();
       setModalOpen(false);
       setEditingUser(null);
@@ -601,7 +614,7 @@ const AdminPage = () => {
   const handleLogout = () => {
     setIsLogoutModalOpen(true);
   };
-  
+
   const confirmLogout = () => {
     localStorage.removeItem('token');
     localStorage.removeItem('user');
@@ -609,7 +622,7 @@ const AdminPage = () => {
     localStorage.removeItem('username');
     localStorage.removeItem('id');
     localStorage.removeItem('role');
-    
+
     setIsLogoutModalOpen(false);
     navigate('/login');
   };
@@ -642,7 +655,7 @@ const AdminPage = () => {
             actionLoading={actionLoading}
           />
         </div>
-        
+
         <AnimatePresence>
           {modalOpen && (
             <AddUserModal
@@ -672,7 +685,7 @@ const AdminPage = () => {
               icon={<FiAlertTriangle className="h-6 w-6 text-red-300" />}
             />
           )}
-          
+
           {isLockModalOpen && (
             <ConfirmModal
               isOpen={isLockModalOpen}
@@ -683,7 +696,7 @@ const AdminPage = () => {
               message={`Bạn có chắc muốn ${userToActOn?.isLocked ? 'mở khóa' : 'khóa'} ${userToActOn?.email}?`}
               confirmText={userToActOn?.isLocked ? "Mở khóa" : "Khóa"}
               confirmColor={userToActOn?.isLocked ? "blue" : "orange"}
-              icon={<FiAlertTriangle className={`h-6 w-6 ${userToActOn?.isLocked ? 'text-blue-300' : 'text-orange-300'}`} />}
+              icon={userToActOn?.isLocked ? <FiUnlock className='h-6 w-6 text-blue-300' /> : <FiLock className='h-6 w-6 text-orange-300' />}
             />
           )}
 

@@ -77,7 +77,7 @@ const BanModal = ({ isOpen, onClose, onConfirm, loading }) => {
 
   const handleSubmit = () => {
     if (reason.trim() === '') {
-      alert('Vui lòng nhập lý do khóa bài viết.'); // Tạm thời dùng alert cho lỗi validation
+      alert('Vui lòng nhập lý do khóa bài viết.'); 
       return;
     }
     onConfirm(reason);

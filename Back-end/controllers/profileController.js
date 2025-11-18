@@ -24,10 +24,8 @@ const getMe = async (req, res) => {
                     Email, Profile_Picture, Description AS bio, Role,
                     CONVERT(varchar, Date_Of_Birth, 23) AS Date_Of_Birth,
                     
-                    -- ✅ SỬA LỖI: Tính toán động số lượng Posts
                     (SELECT COUNT(*) FROM [Post] WHERE User_id = Users.User_id) AS postsCount,
                     
-                    -- ✅ SỬA LỖI: Tính toán động số lượng Followers
                     (SELECT COUNT(*) FROM Follow WHERE FamousUser_id = Users.User_id) AS followersCount,
                     
                     (SELECT COUNT(*) FROM Follow WHERE Followers_id = Users.User_id) AS followingCount
@@ -37,10 +35,10 @@ const getMe = async (req, res) => {
         if (result.recordset.length === 0) {
             return res.status(404).json({ message: 'Không tìm thấy người dùng' });
         }
-        console.log(`✅ Đã tìm thấy thông tin "me" cho: ${userId}`);
+        console.log(` Đã tìm thấy thông tin "me" cho: ${userId}`);
         res.json(result.recordset[0]); 
     } catch (err) {
-        console.error('❌ Lỗi getMe:', err);
+        console.error(' Lỗi getMe:', err);
         res.status(500).json({ message: 'Lỗi server khi lấy thông tin cá nhân' });
     }
 };
@@ -54,7 +52,7 @@ const getProfileInfo = async (req, res) => {
     if (!email) {
         return res.status(400).json({ message: 'Thiếu email' });
     }
-    console.log(`--- 🚀 YÊU CẦU LẤY THÔNG TIN PROFILE CHO: ${email} ---`);
+    console.log(`---  YÊU CẦU LẤY THÔNG TIN PROFILE CHO: ${email} ---`);
     try {
         const pool = await connection();
         const result = await pool.request()
@@ -66,10 +64,8 @@ const getProfileInfo = async (req, res) => {
                     Email,
                     Description AS bio, 
                     
-                    -- ✅ SỬA LỖI: Tính toán động số lượng Posts
                     (SELECT COUNT(*) FROM [Post] WHERE User_id = Users.User_id) AS postsCount,
                     
-                    -- ✅ SỬA LỖI: Tính toán động số lượng Followers
                     (SELECT COUNT(*) FROM Follow WHERE FamousUser_id = Users.User_id) AS followersCount,
                     
                     (SELECT COUNT(*) FROM Follow WHERE Followers_id = Users.User_id) AS followingCount
@@ -79,10 +75,10 @@ const getProfileInfo = async (req, res) => {
         if (result.recordset.length === 0) {
             return res.status(404).json({ message: 'Không tìm thấy người dùng' });
         }
-        console.log(`✅ Đã tìm thấy thông tin profile cho: ${email}`);
+        console.log(` Đã tìm thấy thông tin profile cho: ${email}`);
         res.json(result.recordset[0]); 
     } catch (err) {
-        console.error('❌ Lỗi getProfileInfo:', err);
+        console.error(' Lỗi getProfileInfo:', err);
         res.status(500).json({ message: 'Lỗi server khi lấy thông tin hồ sơ' });
     }
 };
@@ -97,7 +93,7 @@ const getProfileImage = async (req, res) => {
     if (!email) {
         return res.status(400).json({ message: 'Thiếu email' });
     }
-    console.log(`--- 🚀 YÊU CẦU LẤY ẢNH PROFILE CHO: ${email} ---`);
+    console.log(`---  YÊU CẦU LẤY ẢNH PROFILE CHO: ${email} ---`);
     try {
         const pool = await connection();
         const result = await pool.request()
@@ -110,10 +106,10 @@ const getProfileImage = async (req, res) => {
         if (result.recordset.length === 0) {
             return res.status(404).json({ message: 'Không tìm thấy người dùng' });
         }
-        console.log(`✅ Đã tìm thấy ảnh profile cho: ${email}`);
+        console.log(` Đã tìm thấy ảnh profile cho: ${email}`);
         res.json(result.recordset[0]);
     } catch (err) {
-        console.error('❌ Lỗi getProfileImage:', err);
+        console.error(' Lỗi getProfileImage:', err);
         res.status(500).json({ message: 'Lỗi server khi lấy ảnh hồ sơ' });
     }
 };
@@ -130,7 +126,7 @@ const getUserProfile = async (req, res) => {
         return res.status(400).json({ message: 'Thiếu userId' });
     }
     
-    console.log(`--- 🚀 YÊU CẦU LẤY THÔNG TIN PROFILE CHO: ${userId} (người xem: ${currentUserId || 'anonymous'}) ---`);
+    console.log(`---  YÊU CẦU LẤY THÔNG TIN PROFILE CHO: ${userId} (người xem: ${currentUserId || 'anonymous'}) ---`);
     
     try {
         const pool = await connection();
@@ -158,13 +154,10 @@ const getUserProfile = async (req, res) => {
                         Role,
                         CONVERT(varchar, Date_Of_Birth, 23) AS Date_Of_Birth,
                         
-                        -- ✅ SỬA LỖI: Tính toán động số lượng Posts
                         (SELECT COUNT(*) FROM [Post] WHERE User_id = Users.User_id) AS postsCount,
                         
-                        -- Tính toán động số lượng Followers
                         (SELECT COUNT(*) FROM Follow WHERE FamousUser_id = Users.User_id) AS followersCount,
                         
-                        -- Tính toán động số lượng Following
                         (SELECT COUNT(*) FROM Follow WHERE Followers_id = Users.User_id) AS followingCount
                     FROM Users
                     WHERE Email = @email
@@ -185,13 +178,10 @@ const getUserProfile = async (req, res) => {
                         Role,
                         CONVERT(varchar, Date_Of_Birth, 23) AS Date_Of_Birth,
                         
-                        -- ✅ SỬA LỖI: Tính toán động số lượng Posts
                         (SELECT COUNT(*) FROM [Post] WHERE User_id = Users.User_id) AS postsCount,
                         
-                        -- Tính toán động số lượng Followers
                         (SELECT COUNT(*) FROM Follow WHERE FamousUser_id = Users.User_id) AS followersCount,
                         
-                        -- Tính toán động số lượng Following
                         (SELECT COUNT(*) FROM Follow WHERE Followers_id = Users.User_id) AS followingCount
                     FROM Users
                     WHERE User_id = @userId
@@ -222,15 +212,15 @@ const getUserProfile = async (req, res) => {
         
         // Kiểm tra xem có phải profile của chính mình không
         const isOwnProfile = currentUserId === targetUserId;
-        
-        console.log(`✅ Đã tìm thấy thông tin profile cho: ${userId}`);
+    
+        console.log(` Đã tìm thấy thông tin profile cho: ${userId}`);
         res.json({
             ...userProfile,
             isFollowing,
             isOwnProfile
         });
     } catch (err) {
-        console.error('❌ Lỗi getUserProfile:', err);
+        console.error(' Lỗi getUserProfile:', err);
         res.status(500).json({ message: 'Lỗi server khi lấy thông tin profile' });
     }
 };
@@ -246,7 +236,7 @@ const updateMe = async (req, res) => {
     if (!First_Name || !Last_name) {
         return res.status(400).json({ message: "Tên và Họ không được để trống." });
     }
-    console.log(`--- 🚀 YÊU CẦU CẬP NHẬT PROFILE CHO: ${userId} ---`);
+    console.log(`---  YÊU CẦU CẬP NHẬT PROFILE CHO: ${userId} ---`);
     try {
         const pool = await connection();
         const request = pool.request();
@@ -277,20 +267,18 @@ const updateMe = async (req, res) => {
                     Email, Profile_Picture, Description AS bio, Role,
                     CONVERT(varchar, Date_Of_Birth, 23) AS Date_Of_Birth,
                     
-                    -- ✅ SỬA LỖI: Tính toán động số lượng Posts
                     (SELECT COUNT(*) FROM [Post] WHERE User_id = Users.User_id) AS postsCount,
                     
-                    -- ✅ SỬA LỖI: Tính toán động số lượng Followers
                     (SELECT COUNT(*) FROM Follow WHERE FamousUser_id = Users.User_id) AS followersCount,
                     
                     (SELECT COUNT(*) FROM Follow WHERE Followers_id = Users.User_id) AS followingCount
                 FROM Users
                 WHERE User_id = @userIdUpdated
             `);
-        console.log(`✅ Cập nhật profile thành công cho: ${userId}`);
+        console.log(` Cập nhật profile thành công cho: ${userId}`);
         res.status(200).json(updatedResult.recordset[0]);
     } catch (err) {
-        console.error('❌ Lỗi updateMe:', err);
+        console.error(' Lỗi updateMe:', err);
         res.status(500).json({ message: 'Lỗi server khi cập nhật hồ sơ' });
     }
 };
@@ -301,7 +289,7 @@ const updateMe = async (req, res) => {
  */
 const updateProfilePicture = async (req, res) => {
     const userId = req.user.id;
-    console.log(`--- 🚀 YÊU CẦU CẬP NHẬT ẢNH PROFILE CHO: ${userId} ---`);
+    console.log(`---  YÊU CẦU CẬP NHẬT ẢNH PROFILE CHO: ${userId} ---`);
     try {
         // 1. Kiểm tra file
         console.log("Kiểm tra req.file...");
@@ -346,10 +334,8 @@ const updateProfilePicture = async (req, res) => {
                     Email, Profile_Picture, Description AS bio, Role,
                     CONVERT(varchar, Date_Of_Birth, 23) AS Date_Of_Birth,
                     
-                    -- ✅ SỬA LỖI: Tính toán động số lượng Posts
                     (SELECT COUNT(*) FROM [Post] WHERE User_id = Users.User_id) AS postsCount,
                     
-                    -- ✅ SỬA LỖI: Tính toán động số lượng Followers
                     (SELECT COUNT(*) FROM Follow WHERE FamousUser_id = Users.User_id) AS followersCount,
                     
                     (SELECT COUNT(*) FROM Follow WHERE Followers_id = Users.User_id) AS followingCount
@@ -357,10 +343,10 @@ const updateProfilePicture = async (req, res) => {
                 WHERE User_id = @userIdUpdated
             `);
         
-        console.log(`✅ Cập nhật ảnh thành công cho: ${userId}`);
+        console.log(` Cập nhật ảnh thành công cho: ${userId}`);
         res.status(200).json(updatedResult.recordset[0]);
     } catch (err) {
-        console.error('❌ LỖI NGHIÊM TRỌNG TRONG HÀM updateProfilePicture:', err); 
+        console.error(' LỖI NGHIÊM TRỌNG TRONG HÀM updateProfilePicture:', err); 
         res.status(500).json({ message: 'Lỗi server khi cập nhật ảnh đại diện.' });
     }
 };

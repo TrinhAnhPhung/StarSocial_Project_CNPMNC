@@ -1,3 +1,4 @@
+// src/Components/Profile.jsx
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 // 1. Import Modal (Xóa 'Link')

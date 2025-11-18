@@ -383,3 +383,65 @@ export const getReportDetails = async (req, res) => {
         res.status(500).json({ message: "Lỗi server", error: error.message });
     }
 };
+// ----------------------------------------------------------------
+// HÀM 12: Lấy chi tiết bài viết bị báo cáo và các báo cáo
+// ----------------------------------------------------------------
+// Logic cho [GET] /api/handle/post-details/:postId
+export const getReportedPostDetails = async (req, res) => {
+    const { postId } = req.params;
+
+    if (!postId) {
+        return res.status(400).json({ message: "Thiếu Post ID." });
+    }
+
+    try {
+        const pool = await connection();
+        
+        // BƯỚC 1: Lấy chi tiết Bài viết
+        const postResult = await pool.request()
+            .input('PostID', sql.BigInt, postId)
+            .query(`
+                SELECT 
+                    P.Post_id, P.Content, P.Image_URL, P.Created_At, P.IsLocked,
+                    U.User_id AS User_Id, U.Email AS User_Email, U.First_Name AS User_FirstName, 
+                    U.Last_name AS User_LastName, U.Profile_Picture AS User_Avatar, U.User_name AS User_Username
+                FROM [Post] AS P
+                JOIN [Users] AS U ON P.User_id = U.User_id
+                WHERE P.Post_id = @PostID;
+            `);
+        
+        if (postResult.recordset.length === 0) {
+            return res.status(404).json({ message: "Không tìm thấy bài viết." });
+        }
+        
+        const post = postResult.recordset[0];
+
+        // BƯỚC 2: Lấy tất cả báo cáo cho bài viết này (tái sử dụng logic từ getReportDetails)
+        const reportsResult = await pool.request()
+            .input('PostID2', sql.BigInt, postId)
+            .query(`
+                SELECT 
+                    U.User_name AS Reporter_Username,
+                    U.Email AS Reporter_Email,
+                    R.Reason, 
+                    R.Note,
+                    R.Created_At
+                FROM [ReportTemp] AS R
+                JOIN [Users] AS U ON R.Reporter_id = U.User_id
+                WHERE R.Post_id = @PostID2
+                ORDER BY R.Created_At DESC;
+            `);
+        
+        const reports = reportsResult.recordset;
+
+        // BƯỚC 3: Trả về cả hai
+        res.status(200).json({ 
+            post: post, 
+            reports: reports 
+        });
+
+    } catch (error) {
+        console.error("Lỗi khi lấy chi tiết bài viết và báo cáo:", error);
+        res.status(500).json({ message: "Lỗi server", error: error.message });
+    }
+};

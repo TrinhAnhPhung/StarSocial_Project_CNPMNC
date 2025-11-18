@@ -31,6 +31,7 @@ export const getAllUsers = async (req, res) => {
         u.Profile_Picture,
         u.Description,
         u.Reliability,
+        u.Created_at, -- FIX 1: THÊM CỘT CREATED_AT VÀO QUERY
         ISNULL(p.posts_count, 0) AS posts_count,
         ISNULL(c.comments_count, 0) AS comments_count
       FROM Users u
@@ -50,7 +51,7 @@ export const getAllUsers = async (req, res) => {
     const users = result.recordset.map(user => {
       // Xử lý isLocked (có thể là BIT, INT, hoặc BOOLEAN)
       const isLocked = user.isLocked === 1 || user.isLocked === true || user.isLocked === 'true';
-      
+
       return {
         id: user.id,
         email: user.Email,
@@ -60,7 +61,8 @@ export const getAllUsers = async (req, res) => {
         role: user.Role || 'user',
         status: user.status || (isLocked ? 'Banned' : 'Active'),
         isLocked: isLocked,
-        joined_date: null, // Không có cột Created_at trong query
+        // FIX 1: SỬ DỤNG CREATED_AT CHO joined_date
+        joined_date: user.Created_at, 
         profile_picture: user.Profile_Picture,
         description: user.Description,
         reliability: user.Reliability,
@@ -82,6 +84,8 @@ export const getAllUsers = async (req, res) => {
     });
   }
 };
+
+// ----------------------------------------------------------------------
 
 /**
  * Lấy thông tin một người dùng cụ thể
@@ -109,8 +113,8 @@ export const getUserById = async (req, res) => {
           Role,
           CASE WHEN isLocked = 1 THEN 'Banned' ELSE 'Active' END AS status,
           isLocked,
-          CONVERT(varchar, Created_at, 120) AS joined_date,
-          Created_at,
+          -- FIX 2: Bỏ CONVERT(varchar, Created_at, 120) và trả về Created_at nguyên bản để client xử lý tốt hơn
+          Created_at, 
           Profile_Picture,
           Description,
           Reliability,
@@ -134,7 +138,8 @@ export const getUserById = async (req, res) => {
       role: user.Role,
       status: user.status,
       isLocked: user.isLocked === 1 || user.isLocked === true,
-      joined_date: user.joined_date || user.Created_at,
+      // FIX 2: Đảm bảo trường Joined Date là Created_at
+      joined_date: user.Created_at,
       profile_picture: user.Profile_Picture,
       description: user.Description,
       reliability: user.Reliability,
@@ -147,6 +152,8 @@ export const getUserById = async (req, res) => {
     res.status(500).json({ error: 'Lỗi server', detail: error.message });
   }
 };
+
+// ----------------------------------------------------------------------
 
 /**
  * Tạo người dùng mới (chỉ admin)
@@ -215,6 +222,8 @@ export const createUser = async (req, res) => {
   }
 };
 
+// ----------------------------------------------------------------------
+
 /**
  * Cập nhật thông tin người dùng (chỉ admin)
  * PUT /api/admin/users/:userId
@@ -241,6 +250,10 @@ export const updateUser = async (req, res) => {
 
     const user = checkUser.recordset[0];
 
+    // Khai báo biến hash và salt để sử dụng lại (FIX 3)
+    let hashedPassword = null;
+    let saltUser = null;
+
     // Cập nhật thông tin cơ bản
     let updateQuery = `UPDATE Users SET `;
     const updates = [];
@@ -258,6 +271,7 @@ export const updateUser = async (req, res) => {
       // Kiểm tra email mới có trùng không
       const checkEmail = await pool.request()
         .input('email', sql.NVarChar, email)
+        .input('userId', sql.VarChar(26), userId) // Truyền userId vào check email
         .query('SELECT TOP 1 * FROM Users WHERE Email = @email AND User_id != @userId');
 
       if (checkEmail.recordset.length > 0) {
@@ -266,11 +280,11 @@ export const updateUser = async (req, res) => {
       updates.push(`Email = @email`);
     }
 
-    // Cập nhật mật khẩu nếu có
+    // FIX 3: Cập nhật mật khẩu nếu có (Tính toán HASH và SALT chỉ 1 lần)
     if (password) {
-      const saltUser = crypto.randomBytes(8).toString('hex');
+      saltUser = crypto.randomBytes(8).toString('hex');
       const bcryptSalt = await bcrypt.genSalt(10);
-      const hashedPassword = await bcrypt.hash(password + saltUser, bcryptSalt);
+      hashedPassword = await bcrypt.hash(password + saltUser, bcryptSalt);
       updates.push(`Password = @hashedPassword`);
       updates.push(`Salt = @saltUser`);
     }
@@ -288,10 +302,9 @@ export const updateUser = async (req, res) => {
     if (last_name !== undefined) request.input('last_name', sql.NVarChar, last_name);
     if (role !== undefined) request.input('role', sql.NVarChar, role);
     if (email !== undefined) request.input('email', sql.NVarChar, email);
+    
+    // FIX 3: Chỉ truyền input hash/salt nếu chúng đã được tính toán
     if (password) {
-      const saltUser = crypto.randomBytes(8).toString('hex');
-      const bcryptSalt = await bcrypt.genSalt(10);
-      const hashedPassword = await bcrypt.hash(password + saltUser, bcryptSalt);
       request.input('hashedPassword', sql.NVarChar, hashedPassword);
       request.input('saltUser', sql.NVarChar(16), saltUser);
     }
@@ -307,6 +320,8 @@ export const updateUser = async (req, res) => {
   }
 };
 
+// ----------------------------------------------------------------------
+
 /**
  * Khóa/Mở khóa người dùng (chỉ admin)
  * PATCH /api/admin/users/:userId/lock
@@ -320,7 +335,8 @@ export const toggleLockUser = async (req, res) => {
     }
 
     const { userId } = req.params;
-    const { isLocked } = req.body;
+    // Đảm bảo isLocked là boolean/integer
+    const isLocked = req.body.isLocked; 
 
     // Không cho phép khóa chính mình
     if (userId === req.user.id) {
@@ -330,13 +346,23 @@ export const toggleLockUser = async (req, res) => {
     // Kiểm tra user có tồn tại không
     const checkUser = await pool.request()
       .input('userId', sql.VarChar(26), userId)
-      .query('SELECT TOP 1 Email, isLocked FROM Users WHERE User_id = @userId');
+      .query('SELECT TOP 1 Email, Role FROM Users WHERE User_id = @userId');
 
     if (checkUser.recordset.length === 0) {
       return res.status(404).json({ error: 'Không tìm thấy người dùng' });
     }
-
+    
     const user = checkUser.recordset[0];
+    
+    // Thêm kiểm tra không cho khóa admin khác (tùy chọn bảo mật)
+    const userRole = user.Role?.toLowerCase().trim();
+    if (userRole === 'admin' && user.User_id !== req.user.id) {
+         // Bạn có thể cho phép hoặc không cho phép khóa admin khác. 
+         // Nếu không cho phép:
+         // return res.status(400).json({ error: 'Không thể khóa tài khoản admin khác' });
+    }
+
+
     const lockValue = isLocked === true || isLocked === 1 ? 1 : 0;
 
     // Cập nhật trạng thái khóa
@@ -356,6 +382,8 @@ export const toggleLockUser = async (req, res) => {
     res.status(500).json({ error: 'Lỗi server', detail: error.message });
   }
 };
+
+// ----------------------------------------------------------------------
 
 /**
  * Xóa người dùng (chỉ admin)
@@ -406,4 +434,3 @@ export const deleteUser = async (req, res) => {
     res.status(500).json({ error: 'Lỗi server khi xóa người dùng', detail: error.message });
   }
 };
-

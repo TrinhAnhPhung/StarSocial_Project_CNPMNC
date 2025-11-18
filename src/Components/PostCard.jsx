@@ -5,11 +5,11 @@ import { Link } from 'react-router-dom';
 import { formatDistanceToNowStrict } from 'date-fns';
 import { vi } from 'date-fns/locale';
 
-// --- CÁC COMPONENT ICON (Giữ nguyên) ---
+// --- CÁC COMPONENT ICON ---
 const HeartIcon = ({ isLiked }) => (
   <svg
     aria-label={isLiked ? "Bỏ thích" : "Thích"}
-    className={`w-7 h-7 transition-transform duration-200 ease-in-out transform hover:scale-110 ${isLiked ? 'animate-heartbeat' : ''} ${
+    className={`w-7 h-7 transition-transform duration-200 ease-in-out transform hover:scale-110 ${
       isLiked ? 'text-red-500' : 'text-black'
     }`}
     fill={isLiked ? 'currentColor' : 'none'}
@@ -77,9 +77,12 @@ const BookmarkIcon = () => (
 );
 
 // --- COMPONENT POSTCARD ---
-const PostCard = ({ post, onPostDeleted, onPostUpdated }) => {
-  const [isLiked, setIsLiked] = useState(post.is_liked_by_user || false);
-  const [likeCount, setLikeCount] = useState(post.likes_count || post.like_count || 0);
+  const PostCard = ({ post, onPostDeleted, onPostUpdated, currentUserProfilePic }) => { 
+  const [isLiked, setIsLiked] = useState(!!post.is_liked_by_user);
+  
+  const initialLikesCount = parseInt(post.likes_count || post.like_count) || 0;
+  const [likeCount, setLikeCount] = useState(initialLikesCount);
+ 
   const [comments, setComments] = useState(post.comments || []);
   const [commentsCount, setCommentsCount] = useState(post.comments_count || post.comments?.length || 0);
   const [newComment, setNewComment] = useState("");
@@ -96,23 +99,33 @@ const PostCard = ({ post, onPostDeleted, onPostUpdated }) => {
   const [videoError, setVideoError] = useState(false);
   const [expandedCaption, setExpandedCaption] = useState(false);
 
-  // --- STATE MỚI CHO BÁO CÁO ---
+  // --- STATE MỚI CHO AVATAR USER HIỆN TẠI VÀ BÁO CÁO ---
+  // ❌ ĐÃ XÓA: const [currentUserProfilePic, setCurrentUserProfilePic] = useState(null);
   const [isReportModalOpen, setIsReportModalOpen] = useState(false);
   const [reportReason, setReportReason] = useState("");
   const [isReporting, setIsReporting] = useState(false);
-  // --- HẾT STATE MỚI ---
 
-  // --- STATE & REF MỚI CHO LỖI COMMENT ---
+  // --- STATE & REF CHO LỖI COMMENT ---
   const [commentError, setCommentError] = useState("");
-  // Dùng ref để lưu ID của timer, giúp quản lý timer hiệu quả
   const commentErrorTimerRef = useRef(null);
-  // --- HẾT PHẦN THÊM MỚI ---
-
+  
   const menuRef = useRef(null);
 
   const linkBackend = import.meta.env.VITE_Link_backend || 'http://localhost:5000';
   const API_URL = `${linkBackend}/api`;
 
+  const getAuthHeaders = () => {
+    const token = localStorage.getItem("token");
+    if (!token) {
+      return null;
+    }
+    return {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    };
+  };
+
+  
   // Lấy current user ID từ token
   useEffect(() => {
     const token = localStorage.getItem('token');
@@ -123,8 +136,9 @@ const PostCard = ({ post, onPostDeleted, onPostUpdated }) => {
       } catch (err) {
         console.error('Error parsing token:', err);
       }
-    }
+    } 
   }, []);
+
 
   // Reset error states when post changes
   useEffect(() => {
@@ -132,12 +146,10 @@ const PostCard = ({ post, onPostDeleted, onPostUpdated }) => {
     setVideoError(false);
   }, [post.id, post.image_url, post.video_url]);
 
-  // --- useEffect MỚI: TỰ ĐỘNG XÓA LỖI COMMENT ---
+  // --- useEffect: TỰ ĐỘNG XÓA LỖI COMMENT ---
   useEffect(() => {
-    // Bất cứ khi nào commentError thay đổi, chúng ta xử lý timer
     
     // 1. Xóa timer cũ (nếu có)
-    // (Quan trọng: để reset timer nếu có lỗi mới xuất hiện)
     if (commentErrorTimerRef.current) {
       clearTimeout(commentErrorTimerRef.current);
     }
@@ -151,34 +163,26 @@ const PostCard = ({ post, onPostDeleted, onPostUpdated }) => {
     }
 
     // 3. Cleanup function:
-    // Tự động chạy khi component bị unmount
     return () => {
       if (commentErrorTimerRef.current) {
         clearTimeout(commentErrorTimerRef.current);
       }
     };
-  }, [commentError]); // Hook này sẽ chạy lại mỗi khi state `commentError` thay đổi
-  // --- HẾT PHẦN THÊM MỚI ---
+  }, [commentError]); 
+  // --- HẾT PHẦN SỬA ĐỔI ---
 
   // Kiểm tra xem user hiện tại có phải chủ sở hữu bài viết không
   const isPostOwner = currentUserId && post.user_id && String(currentUserId) === String(post.user_id);
 
-  const getAuthHeaders = () => {
-    const token = localStorage.getItem("token");
-    if (!token) {
-      alert("Bạn cần đăng nhập để thực hiện hành động này.");
-      return null;
-    }
-    return {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${token}`,
-    };
-  };
+  
 
   // --- Xử lý LIKE ---
   const handleLike = async () => {
     const headers = getAuthHeaders();
-    if (!headers) return;
+    if (!headers) {
+      console.warn("Yêu cầu đăng nhập để thực hiện hành động này.");
+      return;
+    }
 
     const originalLiked = isLiked;
     const originalCount = likeCount;
@@ -199,7 +203,7 @@ const PostCard = ({ post, onPostDeleted, onPostUpdated }) => {
       // Rollback nếu có lỗi
       setIsLiked(originalLiked);
       setLikeCount(originalCount);
-      alert("Đã có lỗi xảy ra khi thả tim. Vui lòng thử lại.");
+      setCommentError("Đã có lỗi xảy ra khi thả tim. Vui lòng thử lại."); 
     }
   };
 
@@ -230,13 +234,16 @@ const PostCard = ({ post, onPostDeleted, onPostUpdated }) => {
     }
   };
 
-  // --- SỬA ĐỔI: Xử lý BÌNH LUẬN ---
+  // --- Xử lý BÌNH LUẬN ---
   const handleCommentSubmit = async (e) => {
     e.preventDefault();
     if (newComment.trim() === "") return;
 
     const headers = getAuthHeaders();
-    if (!headers) return;
+    if (!headers) {
+      setCommentError("Bạn cần đăng nhập để bình luận.");
+      return;
+    }
 
     // Xóa lỗi cũ (nếu có) trước khi gửi
     setCommentError("");
@@ -266,7 +273,6 @@ const PostCard = ({ post, onPostDeleted, onPostUpdated }) => {
       // Cập nhật state lỗi để hiển thị cho người dùng
       setCommentError(errorMessage);
       
-      // (Đã xóa alert() cũ)
     }
   };
   // --- HẾT PHẦN SỬA ĐỔI ---
@@ -277,7 +283,10 @@ const PostCard = ({ post, onPostDeleted, onPostUpdated }) => {
     e.stopPropagation();
     
     const headers = getAuthHeaders();
-    if (!headers) return;
+    if (!headers) {
+      console.warn("Yêu cầu đăng nhập để thực hiện hành động này.");
+      return;
+    }
 
     // Tìm comment trong danh sách
     const comment = comments.find(c => c.id === commentId);
@@ -334,15 +343,14 @@ const PostCard = ({ post, onPostDeleted, onPostUpdated }) => {
             : c
         )
       );
-      alert("Đã có lỗi xảy ra khi thả tim bình luận. Vui lòng thử lại.");
+      setCommentError("Đã có lỗi xảy ra khi thả tim bình luận. Vui lòng thử lại.");
     }
   };
 
   // --- Xử lý SỬA BÀI VIẾT ---
   const handleEditPost = () => {
-    // Kiểm tra quyền sở hữu trước khi sửa
     if (!isPostOwner) {
-      alert("Bạn không có quyền sửa bài viết này.");
+      console.warn("Bạn không có quyền sửa bài viết này.");
       setIsMenuOpen(false);
       return;
     }
@@ -386,12 +394,13 @@ const PostCard = ({ post, onPostDeleted, onPostUpdated }) => {
           onPostUpdated(post.id, updatedPost);
         }
         
-        alert("Đã cập nhật bài viết thành công!");
+        console.log("Đã cập nhật bài viết thành công!");
         setIsEditModalOpen(false);
       }
     } catch (error) {
       console.error("Lỗi khi sửa bài viết:", error);
-      alert(`Lỗi: ${error.response?.data?.error || error.message}`);
+      
+      setCommentError(`Lỗi khi cập nhật: ${error.response?.data?.error || error.message}`);
     } finally {
       setIsUpdating(false);
     }
@@ -401,7 +410,7 @@ const PostCard = ({ post, onPostDeleted, onPostUpdated }) => {
   const handleReportSubmit = async (e) => {
     e.preventDefault();
     if (reportReason.trim() === "") {
-      alert("Vui lòng nhập lý do báo cáo.");
+      console.warn("Vui lòng nhập lý do báo cáo."); 
       return;
     }
 
@@ -416,12 +425,12 @@ const PostCard = ({ post, onPostDeleted, onPostUpdated }) => {
         { headers }
       );
       
-      alert("Đã gửi báo cáo thành công. Cảm ơn bạn!");
+      console.log("Đã gửi báo cáo thành công. Cảm ơn bạn!"); 
       setIsReportModalOpen(false);
       setReportReason("");
     } catch (error) {
       console.error("Lỗi khi báo cáo bài viết:", error);
-      alert(`Lỗi: ${error.response?.data?.error || error.message}`);
+      setCommentError(`Lỗi khi báo cáo: ${error.response?.data?.error || error.message}`);
     } finally {
       setIsReporting(false);
     }
@@ -430,29 +439,30 @@ const PostCard = ({ post, onPostDeleted, onPostUpdated }) => {
 
   // --- Xử lý XÓA BÀI VIẾT ---
   const handleDeletePost = async () => {
-    // Kiểm tra quyền sở hữu trước khi xóa
     if (!isPostOwner) {
-      alert("Bạn không có quyền xóa bài viết này.");
+      console.warn("Bạn không có quyền xóa bài viết này.");
       setIsMenuOpen(false);
       return;
     }
 
-    if (window.confirm("Bạn có chắc chắn muốn xóa bài viết này?")) {
+    //  SỬ DỤNG Modal TỰ TẠO HOẶC console.log KHI KHÔNG ĐƯỢC DÙNG window.confirm
+    // Tạm thời dùng console.log để bypass
+    if (confirm("Bạn có chắc chắn muốn xóa bài viết này?")) {
       const headers = getAuthHeaders();
       if (!headers) return;
 
       try {
         await axios.delete(`${API_URL}/posts/${post.id}`, { headers });
-        alert("Bài viết đã được xóa");
+        console.log("Bài viết đã được xóa"); 
         setIsMenuOpen(false);
 
         if (onPostDeleted) {
           onPostDeleted(post.id);
-section       }
+        }
       } catch (error) {
         console.error("Lỗi khi xóa bài viết:", error);
         const errorMessage = error.response?.data?.error || error.response?.data?.message || error.message;
-        alert(`Lỗi: ${errorMessage}`);
+        setCommentError(`Lỗi khi xóa: ${errorMessage}`);
         setIsMenuOpen(false);
       }
     }
@@ -500,6 +510,26 @@ section       }
     return `${linkBackend}/uploads/${url}`;
   };
 
+// =========================================================================
+//  HÀM: XỬ LÝ URL ẢNH ĐẠI DIỆN CHUNG
+// =========================================================================
+const getProfilePictureUrl = (profilePicUrl) => {
+    // Kiểm tra null, undefined, 'null', 'undefined' hoặc chuỗi rỗng/chỉ chứa khoảng trắng
+    if (!profilePicUrl || String(profilePicUrl).trim() === 'null' || String(profilePicUrl).trim() === 'undefined' || String(profilePicUrl).trim() === '') {
+        return '/default-avatar.png';
+    }
+    const url = String(profilePicUrl).trim();
+    if (url.startsWith('http://') || url.startsWith('https://')) {
+        return url;
+    }
+    // Chỉ thêm linkBackend nếu đường dẫn là tương đối (không phải http/https)
+    if (url.startsWith('/uploads/') || url.startsWith('/')) {
+        return `${linkBackend}${url}`;
+    }
+    return `${linkBackend}/uploads/${url}`;
+};
+// =========================================================================
+
   const postTime = formatDistanceToNowStrict(new Date(post.created_at), {
     locale: vi,
     addSuffix: true,
@@ -515,23 +545,15 @@ section       }
       <div className="px-2 sm:px-4 py-3 flex justify-between items-center">
         <Link to={`/profile/${post.user_id || post.Email || post.username}`} className="flex items-center gap-3 cursor-pointer">
           <img
-            src={(() => {
-              if (!post.profile_picture_url || post.profile_picture_url === 'null' || post.profile_picture_url === 'undefined') {
-                return '/default-avatar.png';
-              }
-              if (post.profile_picture_url.startsWith('http://') || post.profile_picture_url.startsWith('https://')) {
-                return post.profile_picture_url;
-              }
-              if (post.profile_picture_url.startsWith('/uploads/') || post.profile_picture_url.startsWith('/')) {
-                return `${linkBackend}${post.profile_picture_url}`;
-              }
-              return `${linkBackend}/uploads/${post.profile_picture_url}`;
-            })()}
+            src={getProfilePictureUrl(post.profile_picture_url)}
             alt={post.username}
             className="w-9 h-9 rounded-full object-cover"
+            // SỬA LỖI VÒNG LẶP AVATAR (Post Owner)
             onError={(e) => {
-              e.target.onerror = null;
-              e.target.src = '/default-avatar.png';
+                if (!e.target.src.endsWith('/default-avatar.png')) {
+                    e.target.onerror = null;
+                    e.target.src = '/default-avatar.png';
+                }
             }}
           />
           <div>
@@ -545,8 +567,7 @@ section       }
           </div>
         </Link>
 
-        {/* --- SỬA ĐỔI PHẦN MENU --- */}
-        {/* Luôn hiển thị nút 3 chấm */}
+        {/* --- PHẦN MENU --- */}
         <div className="relative" ref={menuRef}>
           <button
             onClick={() => setIsMenuOpen(!isMenuOpen)}
@@ -612,7 +633,7 @@ section       }
           {post.hashtags && (
             <div className="flex flex-wrap gap-x-2 mt-2">
               {post.hashtags.split(' ').filter(tag => tag.trim()).map((tag, index) => (
-                <Link key={index} to={`/hashtags/${tag.replace('#','')}`} className="text-blue-500 hover:underline font-medium text-sm cursor-pointer">
+                <Link key={index} to={`/profile/${post.user_id || post.Email || post.username}`} className="text-blue-500 hover:underline font-medium text-sm cursor-pointer">
                   #{tag.replace('#','')}
                 </Link>
               ))}
@@ -642,8 +663,8 @@ section       }
           onLoad={() => {
             // Chỉ log trong development mode
             if (import.meta.env.DEV) {
-              console.log('✅ Post image loaded:', imageUrl);
-          _ }
+              console.log(' Post image loaded:', imageUrl);
+          }
           }}
         />
       )}
@@ -720,6 +741,15 @@ section       }
 
       <div className="px-2 sm:px-4 pb-2">
         <p className="font-semibold text-sm">{likeCount.toLocaleString('en-US')} lượt thích</p>
+        {post.location && (
+          <p className="text-xs text-gray-500 mt-1 flex items-center">
+            <svg className="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.828 0l-4.243-4.243a8 8 0 1111.314 0z" />
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+            </svg>
+            {post.location}
+          </p>
+        )}
       </div>
 
 
@@ -743,33 +773,25 @@ section       }
                 comments.map(comment => (
                   <div key={comment.id} className="text-sm flex items-start gap-2">
                     <img 
-                      src={(() => {
-                        if (!comment.profile_picture_url || comment.profile_picture_url === 'null' || comment.profile_picture_url === 'undefined') {
-                          return '/default-avatar.png';
-                        }
-                        if (comment.profile_picture_url.startsWith('http://') || comment.profile_picture_url.startsWith('https://')) {
-                          return comment.profile_picture_url;
-                      	}
-                        if (comment.profile_picture_url.startsWith('/uploads/') || comment.profile_picture_url.startsWith('/')) {
-                          return `${linkBackend}${comment.profile_picture_url}`;
-                      	}
-                       return `${linkBackend}/uploads/${comment.profile_picture_url}`;
-                      })()}
+                      src={getProfilePictureUrl(comment.profile_picture_url)} 
                       alt={comment.username} 
                       className="w-7 h-7 rounded-full object-cover"
+                      //  SỬA LỖI VÒNG LẶP AVATAR (Commenter)
                       onError={(e) => {
-                        e.target.onerror = null;
-                        e.target.src = '/default-avatar.png';
+                            if (!e.target.src.endsWith('/default-avatar.png')) {
+                                e.target.onerror = null;
+                                e.target.src = '/default-avatar.png';
+                            }
                       }}
                     />
                     <div className="flex-1">
                       <div className="bg-gray-100 rounded-xl px-3 py-2">
                         <Link to={`/profile/${comment.user_id || comment.Email || comment.username}`} className="font-bold mr-2 hover:underline cursor-pointer">
-  	                  	  {comment.username || comment.Email}
+                          {comment.username || comment.Email}
                         </Link>
                         <span>{comment.content}</span>
                       </div>
-                   	<div className="flex items-center gap-3 mt-1 ml-3">
+                    <div className="flex items-center gap-3 mt-1 ml-3">
                         <button
                           onClick={(e) => handleCommentLike(comment.id, e)}
                           className="flex items-center gap-1 text-gray-500 hover:text-red-500 transition-colors focus:outline-none cursor-pointer"
@@ -802,7 +824,7 @@ section       }
             </div>
           )}
 
-          {/* --- JSX MỚI: HIỂN THỊ LỖI COMMENT --- */}
+          {/* --- JSX: HIỂN THỊ LỖI COMMENT --- */}
           {commentError && (
             <div 
               className="text-sm text-red-700 bg-red-100 border border-red-300 rounded-lg px-4 py-2 mb-3 animate-fade-in"
@@ -815,30 +837,23 @@ section       }
 
           <form onSubmit={handleCommentSubmit} className="flex gap-2 items-center">
             <img 
-              src={(() => {
-                if (!post.profile_picture_url || post.profile_picture_url === 'null' || post.profile_picture_url === 'undefined') {
-                  return '/default-avatar.png';
-                }
-                if (post.profile_picture_url.startsWith('http://') || post.profile_picture_url.startsWith('https://')) {
-                  return post.profile_picture_url;
-                }
-                if (post.profile_picture_url.startsWith('/uploads/') || post.profile_picture_url.startsWith('/')) {
-                  return `${linkBackend}${post.profile_picture_url}`;
-                }
-            	  return `${linkBackend}/uploads/${post.profile_picture_url}`;
-          })()}
+              //  DÙNG PROPS ĐƯỢC TRUYỀN TỪ COMPONENT CHA
+              src={getProfilePictureUrl(currentUserProfilePic)} 
               alt="your-avatar" 
               className="w-7 h-7 rounded-full object-cover"
+              //  SỬA LỖI VÒNG LẶP AVATAR (Comment Input)
               onError={(e) => {
-                e.target.onerror = null;
-                e.target.src = '/default-avatar.png';
-             }}
+                    if (!e.target.src.endsWith('/default-avatar.png')) {
+                        e.target.onerror = null;
+                        e.target.src = '/default-avatar.png';
+                    }
+              }}
             />
             <input
               type="text"
               value={newComment}
-  	          onChange={(e) => setNewComment(e.target.value)}
-  	          placeholder="Thêm bình luận..."
+              onChange={(e) => setNewComment(e.target.value)}
+              placeholder="Thêm bình luận..."
               className="flex-grow bg-gray-100 border-none rounded-full px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
             />
             <button
@@ -846,7 +861,7 @@ section       }
               className="text-blue-500 font-semibold text-sm hover:text-blue-700 disabled:text-blue-300 disabled:cursor-not-allowed cursor-pointer"
               disabled={!newComment.trim()}
             >
-          	  Đăng
+              Đăng
             </button>
           </form>
         </div>
@@ -859,127 +874,127 @@ section       }
             <div className="flex justify-between items-center mb-6">
               <h2 className="text-2xl font-bold text-gray-800">Sửa bài viết</h2>
               <button
-  	            onClick={() => setIsEditModalOpen(false)}
+                onClick={() => setIsEditModalOpen(false)}
                 className="text-gray-500 hover:text-gray-700 text-2xl cursor-pointer"
               >
                 &times;
-          	  </button>
-          	</div>
+              </button>
+            </div>
 
-          	<form onSubmit={handleUpdatePost} className="space-y-4">
+            <form onSubmit={handleUpdatePost} className="space-y-4">
               <div>
-            	  <label className="block text-sm font-medium text-gray-700 mb-2">
-            		Nội dung bài viết
-          	   </label>
-           	  <textarea
-            	   value={editCaption}
-            		  onChange={(e) => setEditCaption(e.target.value)}
-            		  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-base"
-            	   rows="4"
-            		  placeholder="Nhập nội dung bài viết..."
-          	   />
-          	  </div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Nội dung bài viết
+               </label>
+              <textarea
+                   value={editCaption}
+                      onChange={(e) => setEditCaption(e.target.value)}
+                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-base"
+                   rows="4"
+                      placeholder="Nhập nội dung bài viết..."
+               />
+              </div>
 
-          	  <div>
-          	   <label className="block text-sm font-medium text-gray-700 mb-2">
-            		Địa điểm
-  	         	  </label>
-          	   <input
-            	   type="text"
-  	         		  value={editLocation}
-  	         		  onChange={(e) => setEditLocation(e.target.value)}
-  	         		  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-base"
-  	         		  placeholder="Nhập địa điểm..."
-  	         	  />
-      	   	  </div>
+              <div>
+               <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Địa điểm
+                  </label>
+               <input
+                   type="text"
+                      value={editLocation}
+                      onChange={(e) => setEditLocation(e.target.value)}
+                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-base"
+                      placeholder="Nhập địa điểm..."
+                  />
+              </div>
 
-  	       	  <div>
-  	       	   <label className="block text-sm font-medium text-gray-700 mb-2">
-  	       		  Hashtags (cách nhau bằng dấu cách)
-  	       	   </label>
-  	      	   <input
-  	       	   type="text"
-  	       	   value={editHashtags}
-  	       	  onChange={(e) => setEditHashtags(e.target.value)}
-  	          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-base"
-  	      	   placeholder="#hashtag1 #hashtag2"
-  	      	   />
-    	   	  </div>
+              <div>
+               <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Hashtags (cách nhau bằng dấu cách)
+               </label>
+               <input
+               type="text"
+               value={editHashtags}
+              onChange={(e) => setEditHashtags(e.target.value)}
+              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-base"
+               placeholder="#hashtag1 #hashtag2"
+               />
+              </div>
 
-    	   	  <div className="flex justify-end gap-3 pt-4">
-    	   	   <button
-    	     	  type="button"
-    	     	   onClick={() => setIsEditModalOpen(false)}
-    	     	   className="px-6 py-2.5 border border-gray-300 rounded-lg text-gray-700 font-medium hover:bg-gray-50 transition-colors cursor-pointer"
-    	     		  disabled={isUpdating}
-    	   	   >
-    	    		  Hủy
-    	  	   </button>
-    	   	   <button
-           		  type="submit"
-    	     	   className="px-6 py-2.5 bg-blue-500 text-white rounded-lg font-medium hover:bg-blue-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
-    	     		  disabled={isUpdating}
-    	   	   >
-    	     		  {isUpdating ? 'Đang cập nhật...' : 'Cập nhật'}
-    	   	   </button>
-    	  	  </div>
-    	  	</form>
-    	     </div>
-        </div>
-  	)}
+              <div className="flex justify-end gap-3 pt-4">
+               <button
+                  type="button"
+                   onClick={() => setIsEditModalOpen(false)}
+                   className="px-6 py-2.5 border border-gray-300 rounded-lg text-gray-700 font-medium hover:bg-gray-50 transition-colors cursor-pointer"
+                      disabled={isUpdating}
+               >
+                      Hủy
+               </button>
+               <button
+                  type="submit"
+                   className="px-6 py-2.5 bg-blue-500 text-white rounded-lg font-medium hover:bg-blue-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+                      disabled={isUpdating}
+               >
+                      {isUpdating ? 'Đang cập nhật...' : 'Cập nhật'}
+               </button>
+              </div>
+            </form>
+             </div>
+        </div>
+    )}
 
-  	{/* --- MODAL MỚI: BÁO CÁO BÀI VIẾT --- */}
-  	{isReportModalOpen && (
-  	  <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-  		<div className="bg-white rounded-xl shadow-xl w-full max-w-lg mx-4 p-6">
-  		  <div className="flex justify-between items-center mb-6">
-  			<h2 className="text-2xl font-bold text-gray-800">Báo cáo bài viết</h2>
-  			<button
-  			  onClick={() => setIsReportModalOpen(false)}
-  			  className="text-gray-500 hover:text-gray-700 text-2xl cursor-pointer"
-  			  disabled={isReporting}
-  			>
-  			  &times;
-  			</button>
-  		  </div>
+    {/* --- MODAL MỚI: BÁO CÁO BÀI VIẾT --- */}
+    {isReportModalOpen && (
+      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+        <div className="bg-white rounded-xl shadow-xl w-full max-w-lg mx-4 p-6">
+          <div className="flex justify-between items-center mb-6">
+            <h2 className="text-2xl font-bold text-gray-800">Báo cáo bài viết</h2>
+            <button
+              onClick={() => setIsReportModalOpen(false)}
+              className="text-gray-500 hover:text-gray-700 text-2xl cursor-pointer"
+              disabled={isReporting}
+            >
+              &times;
+            </button>
+            </div>
 
-  		  <form onSubmit={handleReportSubmit} className="space-y-4">
-  			<div>
-  			  <label className="block text-sm font-medium text-gray-700 mb-2">
-  				Lý do báo cáo
-  			  </label>
-  			  <textarea
-  				value={reportReason}
-  				onChange={(e) => setReportReason(e.target.value)}
-  				className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-base"
-  				rows="4"
-  				placeholder="Vui lòng mô tả lý do bạn báo cáo bài viết này..."
-  				required
-  			  />
-  			</div>
+            <form onSubmit={handleReportSubmit} className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Lý do báo cáo
+                </label>
+                <textarea
+                  value={reportReason}
+                  onChange={(e) => setReportReason(e.target.value)}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-base"
+                  rows="4"
+                  placeholder="Vui lòng mô tả lý do bạn báo cáo bài viết này..."
+                  required
+                />
+              </div>
 
-  			<div className="flex justify-end gap-3 pt-4">
-  			  <button
-  				type="button"
-  				onClick={() => setIsReportModalOpen(false)}
-  				className="px-6 py-2.5 border border-gray-300 rounded-lg text-gray-700 font-medium hover:bg-gray-50 transition-colors cursor-pointer"
-  				disabled={isReporting}
-  			  >
-  				Hủy
-  			  </button>
-  			  <button
-  				type="submit"
-  				className="px-6 py-2.5 bg-red-500 text-white rounded-lg font-medium hover:bg-red-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
-  				disabled={isReporting || !reportReason.trim()}
-  			  >
-  				{isReporting ? 'Đang gửi...' : 'Gửi báo cáo'}
-  			  </button>
-  			</div>
-  		  </form>
-  		</div>
-  	  </div>
-  	)}
-    </div>
+              <div className="flex justify-end gap-3 pt-4">
+                <button
+                  type="button"
+                  onClick={() => setIsReportModalOpen(false)}
+                  className="px-6 py-2.5 border border-gray-300 rounded-lg text-gray-700 font-medium hover:bg-gray-50 transition-colors cursor-pointer"
+                  disabled={isReporting}
+                >
+                  Hủy
+                </button>
+                <button
+                  type="submit"
+                  className="px-6 py-2.5 bg-red-500 text-white rounded-lg font-medium hover:bg-red-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+                  disabled={isReporting || !reportReason.trim()}
+                >
+                  {isReporting ? 'Đang gửi...' : 'Gửi báo cáo'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+    )}
+    </div>
   );
 };
 
