@@ -96,7 +96,7 @@ const NotificationPage = () => {
     }
 
     // Nếu có post_id (like, comment, ...) → nhảy về bài viết
-    if (notification.post_id) {
+if (notification.post_id) {
       // Dùng hash để giống NotificationBell, và để browser tự xử lý
       window.location.href = `/#post-${notification.post_id}`;
       return;
@@ -169,7 +169,7 @@ const NotificationPage = () => {
               </Link>
               <div>
                 <h1 className="text-2xl font-bold text-gray-800 flex items-center gap-2">
-                  <span className="material-icons text-blue-600">notifications_active</span>
+<span className="material-icons text-blue-600">notifications_active</span>
                   Thông báo
                 </h1>
                 <p className="text-sm text-gray-500 mt-1">
@@ -221,7 +221,7 @@ const NotificationPage = () => {
                                 className="w-14 h-14 rounded-full object-cover ring-4 ring-offset-2 ring-blue-200 transition-all duration-300 hover:ring-blue-400 hover:scale-110 shadow-lg"
                                 onError={(e) => {
                                   e.target.onerror = null;
-                                  e.target.src = '/default-avatar.png';
+e.target.src = '/default-avatar.png';
                                 }}
                               />
                               {!notification.is_read && (
@@ -269,8 +269,8 @@ const NotificationPage = () => {
                       </div>
 
                       {/* Expanded Content */}
-                      <div 
-                        className={`overflow-hidden transition-all duration-300 ease-in-out ${
+                      <div
+className={`overflow-hidden transition-all duration-300 ease-in-out ${
                           expandedId === notification.id ? 'max-h-40 opacity-100' : 'max-h-0 opacity-0'
                         }`}
                       >
@@ -356,7 +356,7 @@ const NotificationPage = () => {
         }
         
         .custom-scrollbar::-webkit-scrollbar {
-          width: 6px;
+width: 6px;
         }
         
         .custom-scrollbar::-webkit-scrollbar-track {
