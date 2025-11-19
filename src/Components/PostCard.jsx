@@ -77,11 +77,14 @@ const BookmarkIcon = () => (
 );
 
 // --- COMPONENT POSTCARD ---
-  const PostCard = ({ post, onPostDeleted, onPostUpdated, currentUserProfilePic }) => { 
-  const [isLiked, setIsLiked] = useState(!!post.is_liked_by_user);
-  
-  const initialLikesCount = parseInt(post.likes_count || post.like_count) || 0;
-  const [likeCount, setLikeCount] = useState(initialLikesCount);
+const PostCard = ({ post, onPostDeleted, onPostUpdated, currentUserProfilePic, onPostChange }) => {
+  const [isLiked, setIsLiked] = useState(post.is_liked_by_user || false);
+  const [likeCount, setLikeCount] = useState(post.likes_count || 0);
+
+  useEffect(() => {
+    setIsLiked(post.is_liked_by_user || false);
+    setLikeCount(post.likes_count || 0);
+  }, [post.is_liked_by_user, post.likes_count]);
  
   const [comments, setComments] = useState(post.comments || []);
   const [commentsCount, setCommentsCount] = useState(post.comments_count || post.comments?.length || 0);
