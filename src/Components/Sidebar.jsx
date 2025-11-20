@@ -60,7 +60,23 @@ const Sidebar = () => {
     }, [isLoggedIn, email, token, location.pathname, navigate]);
 
     // Xử lý logout
-    const handleLogout = () => {
+    const handleLogout = async () => {
+        const token = localStorage.getItem('token');
+        const linkBackend = import.meta.env.VITE_Link_backend || 'http://localhost:5000';
+        
+        if (token) {
+            try {
+                await fetch(`${linkBackend}/api/auth/logout`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+            } catch (error) {
+                console.error("Logout error:", error);
+            }
+        }
+
         localStorage.clear();
         navigate('/Login');
     };

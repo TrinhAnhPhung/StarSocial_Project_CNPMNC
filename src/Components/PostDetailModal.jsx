@@ -1,5 +1,6 @@
 // src/Components/PostDetailModal.jsx
 import React, { useState, useEffect } from 'react';
+import ReactDOM from 'react-dom';
 import { Link } from 'react-router-dom';
 import axios from 'axios';
 
@@ -237,16 +238,16 @@ const PostDetailModal = ({ post, isOpen, onClose, linkBackend }) => {
 
   if (!isOpen || !post) return null;
 
-  return (
+  return ReactDOM.createPortal(
     <div 
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-75"
+      className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/60 backdrop-blur-md p-4 md:p-8"
       onClick={(e) => {
         if (e.target === e.currentTarget) {
           onClose();
         }
       }}
     >
-      <div className="bg-white rounded-lg max-w-5xl w-full max-h-[90vh] flex flex-col md:flex-row overflow-hidden">
+      <div className="bg-white w-full h-full md:max-w-7xl md:max-h-[95vh] md:rounded-xl flex flex-col md:flex-row overflow-hidden shadow-2xl">
         {/* Nút đóng */}
         <button
           onClick={onClose}
@@ -258,14 +259,14 @@ const PostDetailModal = ({ post, isOpen, onClose, linkBackend }) => {
         </button>
 
         {/* Phần hiển thị media (bên trái) */}
-        <div className="w-full md:w-1/2 bg-black flex items-center justify-center relative">
+        <div className="w-full md:w-[60%] bg-black flex items-center justify-center relative">
           {postMedia.length > 0 ? (
             <>
               {postMedia[currentImageIndex].type === 'image' ? (
                 <img
                   src={postMedia[currentImageIndex].url}
                   alt="Post content"
-                  className="max-w-full max-h-[90vh] object-contain"
+                  className="w-full h-full object-contain"
                   onError={(e) => {
                     e.target.onerror = null;
                     e.target.src = 'https://via.placeholder.com/500?text=Image+Error';
@@ -275,7 +276,7 @@ const PostDetailModal = ({ post, isOpen, onClose, linkBackend }) => {
                 <video
                   src={postMedia[currentImageIndex].url}
                   controls
-                  className="max-w-full max-h-[90vh] object-contain"
+                  className="w-full h-full object-contain"
                   onError={(e) => {
                     e.target.onerror = null;
                     console.error('Error loading video');
@@ -328,7 +329,7 @@ const PostDetailModal = ({ post, isOpen, onClose, linkBackend }) => {
         </div>
 
         {/* Phần thông tin và bình luận (bên phải) */}
-        <div className="w-full md:w-1/2 flex flex-col max-h-[90vh]">
+        <div className="w-full md:w-[40%] flex flex-col h-full bg-white">
           {/* --- SỬA ĐỔI HEADER: Thêm nút báo cáo --- */}
           <div className="p-4 border-b border-gray-200 flex items-center justify-between gap-3">
             <Link 
@@ -538,7 +539,8 @@ const PostDetailModal = ({ post, isOpen, onClose, linkBackend }) => {
           </div>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 };
 

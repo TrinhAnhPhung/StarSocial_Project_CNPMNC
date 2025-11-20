@@ -20,7 +20,9 @@ router.get('/', async (req, res) => {
         u.User_id AS id,
         u.Email AS username,
         u.First_Name + ' ' + u.Last_name AS full_name,
-        u.Profile_Picture AS profile_picture_url
+        u.Profile_Picture AS profile_picture_url,
+        u.Is_Online AS is_online,
+        u.Last_Active AS last_active
       FROM Users u
       WHERE u.Role NOT IN ('admin', 'handlereport')
     `;
@@ -38,7 +40,9 @@ router.get('/', async (req, res) => {
       id: user.id,
       username: user.username || user.Email,
       full_name: user.full_name || 'Unnamed User',
-      profile_picture_url: user.profile_picture_url || null
+      profile_picture_url: user.profile_picture_url || null,
+      is_online: user.is_online,
+      last_active: user.last_active
     }));
     
     res.json(suggestedUsers);

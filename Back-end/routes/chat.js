@@ -21,6 +21,17 @@ router.get(
 );
 
 /**
+ * @route GET /api/conversations/unread-count
+ * @desc Lấy tổng số tin nhắn chưa đọc
+ * @access Private
+ */
+router.get(
+    '/unread-count',
+    authenticateToken,
+    controller.getUnreadMessageCount
+);
+
+/**
  * @route POST /api/conversations/
  * @desc Tạo (hoặc tìm) một cuộc trò chuyện 1-1
  * @access Private
@@ -41,6 +52,18 @@ router.get(
     authenticateToken, // Cần xác thực
     controller.getConversationMessages 
 );
+
+/**
+ * @route POST /api/conversations/:conversationId/messages
+ * @desc Gửi tin nhắn vào cuộc trò chuyện
+ * @access Private
+ */
+router.post(
+    '/:conversationId/messages',
+    authenticateToken,
+    controller.sendConversationMessage
+);
+
 /**
  * @route   DELETE /api/conversations/messages/:messageId
  * @desc    Thu hồi (xóa) một tin nhắn

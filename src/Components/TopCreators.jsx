@@ -64,16 +64,20 @@ const TopCreators = () => {
                 }
             }
 
-            // 2. Gọi API để lấy danh sách người dùng gợi ý
+            // 2. Gọi API để lấy danh sách người dùng (Following nếu đã đăng nhập, Suggestions nếu chưa)
             try {
-                // Xây dựng URL an toàn, loại trừ người dùng hiện tại
                 const linkBackend = import.meta.env.VITE_Link_backend || 'http://localhost:5000';
                 let apiUrl = `${linkBackend}/api/users/suggestions`;
-                if (userId) {
+                let headers = {};
+
+                if (token) {
+                    apiUrl = `${linkBackend}/api/users/following`;
+                    headers = { 'Authorization': `Bearer ${token}` };
+                } else if (userId) {
                     apiUrl += `?exclude=${userId}`;
                 }
 
-                const response = await fetch(apiUrl);
+                const response = await fetch(apiUrl, { headers });
                 if (!response.ok) {
                     throw new Error(`Lỗi HTTP: ${response.status}`);
                 }
@@ -87,35 +91,23 @@ const TopCreators = () => {
                     username: user.username || user.Email || '',
                     avatar: user.profile_picture_url || null,
                     profile_picture_url: user.profile_picture_url || null,
-                    isFollowing: user.is_following || false // Lấy từ API nếu có
+                    isFollowing: user.isFollowing !== undefined ? user.isFollowing : (user.is_following || false),
+                    is_online: user.is_online,
+                    last_active: user.last_active
                 }));
 
-                // Nếu có token, kiểm tra follow status cho từng user
-                if (token && formattedData.length > 0) {
-                    const followStatusPromises = formattedData.map(async (user) => {
-                        try {
-                            const statusResponse = await fetch(
-                                `${linkBackend}/api/users/${user.id}/follow-status`,
-                                {
-                                    headers: { 'Authorization': `Bearer ${token}` }
-                                }
-                            );
-                            if (statusResponse.ok) {
-                                const statusData = await statusResponse.json();
-                                return { ...user, isFollowing: statusData.isFollowing || false };
-                            }
-                        } catch (error) {
-                            console.error(`Lỗi khi kiểm tra follow status cho ${user.id}:`, error);
-                        }
-                        return user;
-                    });
-
-                    formattedData = await Promise.all(followStatusPromises);
+                // Nếu là suggestions (không phải following list) và có token, kiểm tra follow status
+                if (!token && formattedData.length > 0) {
+                     // Logic cũ cho suggestions
+                } else if (token && apiUrl.includes('suggestions') && formattedData.length > 0) {
+                     // Logic cũ cho suggestions khi đã login nhưng API fail fallback về suggestions (nếu có logic đó, ở đây ta đang dùng if token -> following)
+                     // Nhưng nếu following list rỗng, ta có thể muốn fallback về suggestions?
+                     // Hiện tại cứ giữ logic đơn giản: Login -> Following.
                 }
 
                 setSuggestedCreators(formattedData);
             } catch (error) {
-                console.error("Lỗi khi tải danh sách gợi ý:", error);
+                console.error("Lỗi khi tải danh sách:", error);
             } finally {
                 setLoading(false); // Dừng trạng thái tải
             }
@@ -186,7 +178,25 @@ const TopCreators = () => {
             alert("Đã có lỗi xảy ra. Vui lòng thử lại.");
         }
     };
-    
+
+    // Hàm định dạng thời gian hoạt động cuối
+    const formatLastActive = (dateString) => {
+        if (!dateString) return 'Offline';
+        const date = new Date(dateString);
+        const now = new Date();
+        const diff = now - date;
+        
+        const minutes = Math.floor(diff / 60000);
+        const hours = Math.floor(diff / 3600000);
+        const days = Math.floor(diff / 86400000);
+
+        if (minutes < 1) return 'Just now';
+        if (minutes < 60) return `${minutes}m ago`;
+        if (hours < 24) return `${hours}h ago`;
+        if (days < 7) return `${days}d ago`;
+        return date.toLocaleDateString();
+    };
+
     // Giao diện khi đang tải dữ liệu
     if (loading) {
         return <div className="text-gray-800 p-6 rounded-lg max-w-sm mx-auto">Đang tải...</div>;
@@ -216,23 +226,22 @@ const TopCreators = () => {
                                 }}
                             />
                         </div>
-                        <div className="flex flex-col">
-                            <span className="font-semibold text-base">
-                                {currentUser.username || currentUser.Email || currentUser.email || 'User'}
-                            </span>
-                            <span className="text-sm text-gray-500">
+                        <div className="flex flex-col justify-center">
+                            <span className="font-bold text-base text-gray-900">
                                 {currentUser.full_name || 
                                  (currentUser.First_Name && currentUser.Last_name ? `${currentUser.First_Name} ${currentUser.Last_name}` : '') ||
-                                 ''}
+                                 currentUser.username || 'User'}
                             </span>
                         </div>
                     </Link>
                 </div>
             )}
 
-            {/* Tiêu đề "Suggestions for you" */}
+            {/* Tiêu đề thay đổi dựa trên trạng thái đăng nhập */}
             <div className="flex items-center justify-between mb-4">
-                <h3 className="font-semibold text-gray-700 text-1xl">Suggestions for you</h3>
+                <h3 className="font-semibold text-gray-700 text-1xl">
+                    {currentUser ? 'Following' : 'Suggestions for you'}
+                </h3>
                 <Link to="/people" className="text-blue-500 font-semibold text-sm hover:text-blue-700 transition-colors">
                     See all
                 </Link>
@@ -261,8 +270,19 @@ const TopCreators = () => {
                                     />
                                 </div>
                                 <div className="flex flex-col min-w-0 flex-1">
-                                    <span className="font-semibold text-base truncate">{creator.username || creator.name}</span>
-                                    <span className="text-sm text-gray-500 truncate">{creator.name || ''}</span>
+                                    <span className="font-bold text-base truncate text-gray-900">{creator.name}</span>
+                                    <div className="text-xs mt-0.5">
+                                        {creator.is_online ? (
+                                            <span className="flex items-center text-green-600 font-medium">
+                                                <span className="w-2 h-2 bg-green-500 rounded-full mr-1"></span>
+                                                Online
+                                            </span>
+                                        ) : (
+                                            <span className="text-gray-400">
+                                                {creator.last_active ? `Offline • ${formatLastActive(creator.last_active)}` : 'Offline'}
+                                            </span>
+                                        )}
+                                    </div>
                                 </div>
                             </Link>
                             {/* Chỉ hiển thị nút Follow nếu chưa theo dõi */}
@@ -278,7 +298,7 @@ const TopCreators = () => {
                     ))
                 ) : (
                     <div className="text-center text-gray-500 text-sm py-4">
-                        Không có gợi ý nào
+                        {currentUser ? 'Bạn chưa theo dõi ai' : 'Không có gợi ý nào'}
                     </div>
                 )}
             </div>

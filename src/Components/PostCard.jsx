@@ -4,6 +4,7 @@ import axios from 'axios';
 import { Link } from 'react-router-dom';
 import { formatDistanceToNowStrict } from 'date-fns';
 import { vi } from 'date-fns/locale';
+import PostDetailModal from './PostDetailModal'; // Import PostDetailModal
 
 // --- CÁC COMPONENT ICON ---
 const HeartIcon = ({ isLiked }) => (
@@ -93,6 +94,7 @@ const PostCard = ({ post, onPostDeleted, onPostUpdated, currentUserProfilePic, o
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isLoadingComments, setIsLoadingComments] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [isDetailModalOpen, setIsDetailModalOpen] = useState(false); // State cho modal chi tiết
   const [editCaption, setEditCaption] = useState(post.caption || '');
   const [editLocation, setEditLocation] = useState(post.location || '');
   const [editHashtags, setEditHashtags] = useState(post.hashtags || '');
@@ -617,9 +619,9 @@ const getProfilePictureUrl = (profilePicUrl) => {
 
       {/* Caption hiển thị dưới avatar, trước hình ảnh */}
       {post.caption && (
-        <div className="px-2 sm:px-4 py-3">
+        <div className="px-2 sm:px-4 py-3 cursor-pointer" onClick={() => setIsDetailModalOpen(true)}>
           <p className={`text-gray-900 font-semibold text-base sm:text-lg leading-relaxed ${!expandedCaption && post.caption.length > 100 ? 'line-clamp-2' : ''}`}>
-            <Link to={`/profile/${post.user_id || post.Email || post.username}`} className="font-bold hover:underline">
+            <Link to={`/profile/${post.user_id || post.Email || post.username}`} className="font-bold hover:underline" onClick={(e) => e.stopPropagation()}>
               {post.full_name || post.First_Name + ' ' + post.Last_name || post.username}
             </Link>
             {' '}
@@ -627,7 +629,10 @@ const getProfilePictureUrl = (profilePicUrl) => {
           </p>
           {post.caption.length > 100 && (
             <button
-              onClick={() => setExpandedCaption(!expandedCaption)}
+              onClick={(e) => {
+                e.stopPropagation();
+                setExpandedCaption(!expandedCaption);
+              }}
               className="text-gray-500 hover:text-gray-700 text-sm font-medium mt-1 cursor-pointer"
             >
               {expandedCaption ? 'Thu gọn' : 'Xem thêm'}
@@ -636,7 +641,7 @@ const getProfilePictureUrl = (profilePicUrl) => {
           {post.hashtags && (
             <div className="flex flex-wrap gap-x-2 mt-2">
               {post.hashtags.split(' ').filter(tag => tag.trim()).map((tag, index) => (
-                <Link key={index} to={`/profile/${post.user_id || post.Email || post.username}`} className="text-blue-500 hover:underline font-medium text-sm cursor-pointer">
+                <Link key={index} to={`/profile/${post.user_id || post.Email || post.username}`} className="text-blue-500 hover:underline font-medium text-sm cursor-pointer" onClick={(e) => e.stopPropagation()}>
                   #{tag.replace('#','')}
                 </Link>
               ))}
@@ -649,7 +654,8 @@ const getProfilePictureUrl = (profilePicUrl) => {
         <img
           src={imageUrl}
           alt="Nội dung bài viết"
-          className="w-full h-auto object-cover"
+          className="w-full h-auto object-cover cursor-pointer"
+          onClick={() => setIsDetailModalOpen(true)}
           loading="lazy"
           onError={(e) => {
             // Chỉ log lỗi trong development mode
@@ -997,7 +1003,17 @@ const getProfilePictureUrl = (profilePicUrl) => {
           </div>
         </div>
     )}
-    </div>
+
+    {/* Modal chi tiết bài viết */}
+      {isDetailModalOpen && (
+        <PostDetailModal
+          post={post}
+          isOpen={isDetailModalOpen}
+          onClose={() => setIsDetailModalOpen(false)}
+          linkBackend={API_URL.replace('/api', '')} // API_URL thường là .../api, cần bỏ /api nếu PostDetailModal tự thêm
+        />
+      )}
+    </div>
   );
 };
 

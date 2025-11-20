@@ -13,6 +13,9 @@ function ChatWindow({
     const [newMessage, setNewMessage] = useState("");
     const messageEndRef = useRef(null);
     const [hoveredMessageId, setHoveredMessageId] = useState(null);
+    const [isTyping, setIsTyping] = useState(false);
+    const [otherUserTyping, setOtherUserTyping] = useState(false);
+    const typingTimeoutRef = useRef(null);
 
     // --- Logic tải và nhận tin nhắn ---
     useEffect(() => {
@@ -72,14 +75,31 @@ function ChatWindow({
                 )
             );
         };
+
+        const handleUserTyping = (data) => {
+            if (data.userId !== user.id) {
+                setOtherUserTyping(true);
+            }
+        };
+
+        const handleUserStoppedTyping = (data) => {
+            if (data.userId !== user.id) {
+                setOtherUserTyping(false);
+            }
+        };
+
         if (socket) {
             socket.on("receive_message", handleReceiveMessage);
             socket.on("message_deleted_update", handleMessageDeleted); 
+            socket.on("user_typing", handleUserTyping);
+            socket.on("user_stopped_typing", handleUserStoppedTyping);
         }
         return () => {
             if (socket) {
                 socket.off("receive_message", handleReceiveMessage);
                 socket.off("message_deleted_update", handleMessageDeleted); 
+                socket.off("user_typing", handleUserTyping);
+                socket.off("user_stopped_typing", handleUserStoppedTyping);
             }
         };
     }, [selectedConversation, socket, linkBackend, navigate, user]);
@@ -90,8 +110,47 @@ function ChatWindow({
     }, [messages]);
 
     // --- Logic gửi và xóa tin nhắn ---
+    const handleInputChange = (e) => {
+        const text = e.target.value;
+        setNewMessage(text);
+
+        if (!selectedConversation || !socket || !user) return;
+
+        if (!isTyping) {
+            setIsTyping(true);
+            socket.emit("typing", {
+                conversationId: selectedConversation.Conversation_id,
+                userId: user.id,
+                userName: user.First_Name
+            });
+        }
+
+        if (typingTimeoutRef.current) {
+            clearTimeout(typingTimeoutRef.current);
+        }
+
+        typingTimeoutRef.current = setTimeout(() => {
+            setIsTyping(false);
+            socket.emit("stop_typing", {
+                conversationId: selectedConversation.Conversation_id,
+                userId: user.id
+            });
+        }, 2000);
+    };
+
     const handleSendMessage = () => {
         if (!newMessage.trim() || !selectedConversation || !socket || !user) return; 
+        
+        // Stop typing immediately when sending
+        if (typingTimeoutRef.current) {
+            clearTimeout(typingTimeoutRef.current);
+            setIsTyping(false);
+            socket.emit("stop_typing", {
+                conversationId: selectedConversation.Conversation_id,
+                userId: user.id
+            });
+        }
+
         const msgData = {
             conversationId: selectedConversation.Conversation_id,
             senderId: user.id, 
@@ -236,6 +295,13 @@ function ChatWindow({
                         )
                     })
                 }
+                {otherUserTyping && (
+                    <div className="mb-4 flex items-end gap-2 justify-start">
+                         <div className="bg-gray-200 rounded-3xl p-3 px-5">
+                            <p className="text-gray-500 text-sm italic">Đang nhập...</p>
+                        </div>
+                    </div>
+                )}
                 <div ref={messageEndRef} />
             </div>
 
@@ -243,7 +309,7 @@ function ChatWindow({
             <footer className="flex items-center gap-3 border-t border-gray-200 p-4">
                 <input
                     value={newMessage}
-                    onChange={(e) => setNewMessage(e.target.value)}
+                    onChange={handleInputChange}
                     onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
                     placeholder="Aa"
                     className="flex-1 rounded-full border border-gray-300 px-5 py-3 text-lg focus:outline-none bg-gray-100"

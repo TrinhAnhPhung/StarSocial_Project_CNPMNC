@@ -31,6 +31,10 @@ try {
             WHEN C.Type = 'group' THEN NULL
             ELSE U_Other.Profile_Picture
         END AS Profile_Picture_Url,
+        CASE 
+            WHEN C.Type = 'group' THEN NULL
+            ELSE U_Other.User_id
+        END AS OtherUserId,
         (
             SELECT COUNT(*) 
             FROM Messages M 
@@ -185,6 +189,58 @@ try {
             await transaction.rollback();
             console.error("❌ Lỗi sendMessage (logic):", error);
             throw error;
+        }
+    };
+
+    /**
+     * API gửi tin nhắn (HTTP)
+     * POST /api/conversations/:conversationId/messages
+     */
+    export const sendConversationMessage = async (req, res) => {
+        const senderId = req.user.id;
+        const { conversationId } = req.params;
+        const { content } = req.body;
+
+        if (!content) {
+            return res.status(400).json({ message: "Nội dung tin nhắn không được để trống" });
+        }
+
+        try {
+            const message = await sendMessage(conversationId, senderId, content);
+            res.status(201).json(message);
+        } catch (error) {
+            console.error("❌ Lỗi khi gửi tin nhắn:", error);
+            res.status(500).json({ message: "Lỗi server khi gửi tin nhắn" });
+        }
+    };
+
+    /**
+     * Lấy tổng số tin nhắn chưa đọc
+     * GET /api/conversations/unread-count
+     */
+    export const getUnreadMessageCount = async (req, res) => {
+        const userId = req.user.id;
+        try {
+            const pool = await connection();
+            const request = pool.request();
+            request.input("userId", sql.VarChar(26), userId);
+
+            const query = `
+                SELECT COUNT(*) AS TotalUnread
+                FROM Messages M
+                JOIN Conversation_Participants CP ON M.Conversation_id = CP.Conversation_id
+                WHERE CP.User_id = @userId
+                AND M.Sender_id != @userId
+                AND M.Message_id > ISNULL(CP.Last_Read_Message_id, 0)
+            `;
+
+            const result = await request.query(query);
+            const count = result.recordset[0]?.TotalUnread || 0;
+
+            res.status(200).json({ count });
+        } catch (error) {
+            console.error("❌ Lỗi khi lấy số tin nhắn chưa đọc:", error);
+            res.status(500).json({ message: "Lỗi server khi lấy số tin nhắn chưa đọc" });
         }
     };
 

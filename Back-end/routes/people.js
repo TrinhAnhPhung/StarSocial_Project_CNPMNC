@@ -25,6 +25,51 @@ const optionalAuth = (req, res, next) => {
   }
 };
 
+// GET /api/users/following - Lấy danh sách người dùng đang theo dõi
+// Đặt route này lên đầu để tránh xung đột với các route có tham số
+router.get('/following', authenticateToken, async (req, res) => {
+  console.log(`--- 🚀 YÊU CẦU LẤY DANH SÁCH FOLLOWING CHO: ${req.user.id} ---`);
+  try {
+    const pool = await connection();
+    const currentUserId = req.user.id;
+
+    const query = `
+      SELECT 
+        u.User_id AS id,
+        u.Email AS username,
+        u.First_Name + ' ' + u.Last_name AS full_name,
+        u.Profile_Picture AS profile_picture_url,
+        u.Is_Online AS is_online,
+        u.Last_Active AS last_active
+      FROM Users u
+      INNER JOIN [Follow] f ON u.User_id = f.FamousUser_id
+      WHERE f.Followers_id = @current_user_id
+      ORDER BY u.Is_Online DESC, u.Last_Active DESC
+    `;
+
+    const request = pool.request();
+    request.input('current_user_id', sql.VarChar(26), currentUserId);
+
+    const result = await request.query(query);
+
+    const followingUsers = result.recordset.map(user => ({
+      id: user.id,
+      username: user.username || user.Email,
+      full_name: user.full_name || 'Unnamed User',
+      profile_picture_url: user.profile_picture_url || null,
+      is_online: user.is_online,
+      last_active: user.last_active,
+      isFollowing: true // Đã ở trong list following thì chắc chắn là true
+    }));
+    
+    console.log(`✅ Đã tìm thấy ${followingUsers.length} người đang theo dõi`);
+    res.json(followingUsers);
+  } catch (err) {
+    console.error("❌ Lỗi khi lấy danh sách đang theo dõi:", err);
+    res.status(500).json({ error: 'Server Error', message: err.message });
+  }
+});
+
 // GET /api/users
 // Route này sẽ lấy tất cả người dùng để hiển thị trên trang "People"
 router.get('/', optionalAuth, async (req, res) => {

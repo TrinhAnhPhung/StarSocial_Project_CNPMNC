@@ -41,7 +41,13 @@ const app = express();
 const port = process.env.PORT || 5000;
 
 // ✅ Cấu hình CORS cho phép mobile app kết nối
-const ALLOWED_ORIGINS = ['http://localhost:5173', 'http://localhost:19006', 'exp://localhost:19000'];
+const ALLOWED_ORIGINS = [
+  'http://localhost:5173', 
+  'http://localhost:19006', 
+  'exp://localhost:19000',
+  'http://192.168.1.230:3000',
+  'http://localhost:3000'
+];
 app.use(
   cors({
     origin(origin, cb) {
@@ -71,6 +77,24 @@ app.use(
   })
 );
 app.use(express.json());
+
+// Test route để check kết nối
+app.get('/', (req, res) => {
+  res.json({ 
+    status: 'OK', 
+    message: 'Backend is running', 
+    port: port,
+    timestamp: new Date().toISOString()
+  });
+});
+
+app.get('/api', (req, res) => {
+  res.json({ 
+    status: 'OK', 
+    message: 'API is working',
+    version: '1.0.0'
+  });
+});
 
 app.use('/uploads', express.static('uploads'));
 
@@ -140,6 +164,22 @@ socket.on('send_message', async (data) => {
 
         console.log(`[Socket] Đã phát (io.to) sự kiện thu hồi tin nhắn ${messageId} đến phòng ${roomName}`);
     });
+
+    // --- Typing events ---
+    socket.on('typing', (data) => {
+        const { conversationId, userId, userName } = data;
+        const roomName = String(conversationId);
+        // Broadcast to everyone in the room EXCEPT the sender
+        socket.to(roomName).emit('user_typing', { userId, userName });
+    });
+
+    socket.on('stop_typing', (data) => {
+        const { conversationId, userId } = data;
+        const roomName = String(conversationId);
+        // Broadcast to everyone in the room EXCEPT the sender
+        socket.to(roomName).emit('user_stopped_typing', { userId });
+    });
+
     // Lắng nghe khi client ngắt kết nối
     socket.on('disconnect', () => {
         console.log(`🔌 [Socket] Người dùng đã ngắt kết nối: ${socket.id}`);
@@ -148,14 +188,28 @@ socket.on('send_message', async (data) => {
 
 
 // --- 4. Khởi động server ---
-const startServer = async () => {
+const startServer = async (portToTry = port) => {
+    portToTry = Number(portToTry); // Đảm bảo là số
     try {
         await connection(); // Kết nối DB trước
         
         // Thay vì app.listen, dùng server.listen
-        server.listen(port, () => {
-            console.log(`🚀 Server (với Socket.io) đang chạy tại http://localhost:${port}`);
-        });
+        server.listen(portToTry, '0.0.0.0')
+            .on('listening', () => {
+                console.log(`🚀 Server (với Socket.io) đang chạy tại http://0.0.0.0:${portToTry}`);
+                console.log(`📱 Mobile app có thể kết nối tại: http://YOUR_IP:${portToTry}`);
+            })
+            .on('error', (err) => {
+                if (err.code === 'EADDRINUSE') {
+                    console.log(`⚠️  Port ${portToTry} đã được sử dụng, thử port ${portToTry + 1}...`);
+                    // Thử port tiếp theo
+                    server.close();
+                    startServer(portToTry + 1);
+                } else {
+                    console.error("❌ Không thể khởi động server:", err);
+                    process.exit(1);
+                }
+            });
         
     } catch (error) {
         console.error("❌ Không thể khởi động server:", error);

@@ -123,6 +123,11 @@ const loginUser = async (req, res) => {
 
     // ✅ Normalize role: trim và giữ nguyên giá trị (có thể là "handlereport" hoặc "handle report")
     const userRole = user.Role ? user.Role.trim() : null;
+
+    // Cập nhật trạng thái Online
+    await pool.request()
+      .input('email', sql.NVarChar, email)
+      .query(`UPDATE Users SET Is_Online = 1, Last_Active = GETDATE() WHERE Email = @email`);
     
     // ✅ SỬA LỖI: Thêm user.Role vào payload của JWT
     const token = jwt.sign(
@@ -305,6 +310,24 @@ const findUserByEmail = async (req, res) => {
   }
 };
 
+/* ============================
+    Đăng xuất
+============================ */
+const logoutUser = async (req, res) => {
+  const userId = req.user.id; // Lấy từ middleware authenticateToken
+  try {
+    const pool = await connection();
+    await pool.request()
+      .input('id', sql.VarChar(26), userId)
+      .query(`UPDATE Users SET Is_Online = 0, Last_Active = GETDATE() WHERE User_id = @id`);
+    
+    res.json({ message: 'Đăng xuất thành công' });
+  } catch (err) {
+    console.error('❌ Lỗi đăng xuất:', err);
+    res.status(500).json({ error: 'Đăng xuất thất bại' });
+  }
+};
+
 // ✅ SỬA LỖI: Export tất cả các hàm bằng ES modules
 export {
   registerUser,
@@ -313,4 +336,5 @@ export {
   resetPassword,
   getUserProfile,
   findUserByEmail,
+  logoutUser,
 };
