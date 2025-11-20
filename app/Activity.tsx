@@ -1,7 +1,7 @@
 import { StyleSheet, Text, View, useColorScheme, ScrollView, TouchableOpacity, RefreshControl, Image } from "react-native";
 import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
 import { ThemeBar } from "../component/themeBar";
-import { COLORS } from "../constants/color";
+import { COLORS, SIZES } from "../constants/color";
 import Header from "../component/Header";
 import BottomNavigation from "../component/BottomNavigation";
 import { useState, useEffect, useRef } from "react";
@@ -137,7 +137,7 @@ export default function Activity() {
 
   return (
     <SafeAreaProvider style={styles.container}>
-      <SafeAreaView style={[styles.container, { backgroundColor: theme.background_color }]} edges={["top"]}>
+      <View style={[styles.container, { backgroundColor: theme.background_color }]}>
         <ThemeBar />
         <Header />
         <View style={styles.header}>
@@ -182,10 +182,10 @@ export default function Activity() {
             ))
           )}
         </ScrollView>
-        <SafeAreaView edges={["bottom"]}>
+        <View>
           <BottomNavigation userAvatar={userData?.avatar || userData?.profile_picture} />
-        </SafeAreaView>
-      </SafeAreaView>
+        </View>
+      </View>
     </SafeAreaProvider>
   );
 }
@@ -337,7 +337,7 @@ const styles = StyleSheet.create({
   },
   emptyText: {
     marginTop: 16,
-    fontSize: COLORS.medium_font_size,
+    fontSize: SIZES.font,
   },
   notificationItem: {
     flexDirection: "row",
@@ -388,16 +388,16 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   username: {
-    fontSize: COLORS.medium_font_size,
+    fontSize: SIZES.font,
     fontWeight: "600",
   },
   message: {
-    fontSize: COLORS.medium_font_size,
+    fontSize: SIZES.font,
     marginBottom: 4,
     lineHeight: 20,
   },
   time: {
-    fontSize: COLORS.small_font_size,
+    fontSize: SIZES.small,
   },
   unreadDot: {
     position: "absolute",

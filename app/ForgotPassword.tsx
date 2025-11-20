@@ -1,6 +1,6 @@
 import { StyleSheet, Text, View, TextInput } from 'react-native'
 import React from 'react'
-import { COLORS } from '../constants/color'
+import { COLORS, SIZES } from '../constants/color'
 import { useColorScheme } from 'react-native';
 import { ThemeBar } from '../component/themeBar';
 const ForgotPassword = () => {
@@ -56,7 +56,7 @@ const styles = StyleSheet.create({
     },
     lable: {
         alignSelf: 'flex-start',
-        fontSize: COLORS.medium_font_size,
+        fontSize: SIZES.font,
         fontWeight: 'bold',
         marginBottom: 5,
 

@@ -67,11 +67,22 @@ export default function Chat() {
       setIsLoading(true);
       const result = await apiService.getConversations();
       if (result.success) {
-        // Filter out conversations without participant
-        const validConversations = (result.data || []).filter(
-          (conv: Conversation) => conv.participant
-        );
-        setConversations(validConversations);
+        // Map backend data to frontend interface
+        const mappedConversations = (result.data || []).map((item: any) => ({
+          id: item.Conversation_id.toString(),
+          participant: {
+            id: item.OtherUserId || 'group',
+            first_name: item.DisplayName || 'Unknown',
+            last_name: '',
+            avatar: item.Profile_Picture_Url
+          },
+          lastMessage: {
+            content: item.LastMessageContent || '',
+            created_at: item.LastMessageTime
+          },
+          unreadCount: item.UnreadCount
+        }));
+        setConversations(mappedConversations);
       } else {
         console.error("Error loading conversations:", result.message);
       }
@@ -149,7 +160,15 @@ export default function Chat() {
               borderBottomColor: theme.border_color + "30",
             },
           ]}
-          onPress={() => router.push(`/ChatDetail?id=${item.id}&userId=${item.participant?.id || ''}`)}
+          onPress={() => router.push({
+            pathname: "/ChatDetail",
+            params: {
+              id: item.id,
+              userId: item.participant?.id || '',
+              name: `${item.participant?.first_name || ''} ${item.participant?.last_name || ''}`.trim(),
+              avatar: item.participant?.avatar || ''
+            }
+          })}
           activeOpacity={0.7}
         >
           <View style={styles.avatarContainer}>
@@ -240,9 +259,8 @@ export default function Chat() {
 
   return (
     <SafeAreaProvider style={styles.container}>
-      <SafeAreaView
+      <View
         style={[styles.container, { backgroundColor: theme.background_color }]}
-        edges={["top"]}
       >
         <ThemeBar />
         <Header />
@@ -287,7 +305,7 @@ export default function Chat() {
           )}
         </Animated.View>
         <BottomNavigation />
-      </SafeAreaView>
+      </View>
     </SafeAreaProvider>
   );
 }

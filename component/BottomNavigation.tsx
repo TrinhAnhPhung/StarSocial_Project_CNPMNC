@@ -11,6 +11,7 @@ import { MaterialIcons } from '@expo/vector-icons';
 import { COLORS } from '../constants/color';
 import { useRouter, usePathname } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 type BottomNavigationProps = {
   userAvatar?: string;
@@ -29,6 +30,7 @@ export default function BottomNavigation({ userAvatar }: BottomNavigationProps) 
   const theme = COLORS[colorScheme ?? 'dark'] ?? COLORS.dark;
   const router = useRouter();
   const pathname = usePathname();
+  const insets = useSafeAreaInsets();
   const scaleAnims = useRef(
     navigationItems.reduce((acc, item) => {
       acc[item.path] = new Animated.Value(1);
@@ -78,7 +80,13 @@ export default function BottomNavigation({ userAvatar }: BottomNavigationProps) 
         colors={gradientColors}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
-        style={styles.container}
+        style={[
+          styles.container,
+          { 
+            paddingBottom: Math.max(insets.bottom, 5),
+            height: 60 + Math.max(insets.bottom, 0)
+          }
+        ]}
       >
         {navigationItems.map((item, index) => {
           const active = isActive(item.path);
@@ -149,11 +157,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-around',
     alignItems: 'center',
-    paddingVertical: 12,
     paddingHorizontal: 15,
     borderTopWidth: 1,
     borderTopColor: 'rgba(224,224,224,0.08)',
-    height: 65,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: -2 },
     shadowOpacity: 0.1,

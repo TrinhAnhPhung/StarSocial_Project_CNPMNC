@@ -13,7 +13,7 @@ import {
 } from "react-native";
 import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
 import { ThemeBar } from "../component/themeBar";
-import { COLORS } from "../constants/color";
+import { COLORS, SIZES, FONTS, SHADOWS } from "../constants/color";
 import Header from "../component/Header";
 import BottomNavigation from "../component/BottomNavigation";
 import authService from "../services/authService";
@@ -21,6 +21,7 @@ import apiService from "../services/api";
 import { MaterialIcons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import * as ImagePicker from "expo-image-picker";
+import { showSuccess, showError, showWarning } from "../utils/notification";
 
 export default function CreatePost() {
   const [userData, setUserData] = useState<any>(null);
@@ -41,7 +42,7 @@ export default function CreatePost() {
   const requestPermissions = async () => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (status !== "granted") {
-      Alert.alert("Quyền truy cập", "Cần quyền truy cập thư viện ảnh để tạo bài viết");
+      showWarning("Cần quyền truy cập thư viện ảnh để tạo bài viết");
     }
   };
 
@@ -52,25 +53,42 @@ export default function CreatePost() {
 
   const pickImage = async () => {
     try {
+      const { status } = await ImagePicker.getMediaLibraryPermissionsAsync();
+      
+      if (status !== 'granted') {
+        const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
+        if (permission.status !== 'granted') {
+          showError('Cần quyền truy cập thư viện ảnh để chọn ảnh');
+          return;
+        }
+      }
+
       const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: [ImagePicker.MediaTypeOptions.Images, ImagePicker.MediaTypeOptions.Videos],
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
         allowsEditing: true,
         aspect: [1, 1],
         quality: 0.8,
+        allowsMultipleSelection: false,
       });
 
-      if (!result.canceled && result.assets[0]) {
+      if (!result.canceled && result.assets && result.assets[0]) {
         setImage(result.assets[0].uri);
+        console.log('Image selected:', result.assets[0].uri);
       }
     } catch (error) {
       console.error("Error picking image:", error);
-      Alert.alert("Lỗi", "Không thể chọn ảnh");
+      showError("Không thể chọn ảnh. Vui lòng thử lại.");
     }
   };
 
   const handleCreatePost = async () => {
     if (!image) {
-      Alert.alert("Thông báo", "Vui lòng chọn ảnh hoặc video");
+      showWarning("Vui lòng chọn ảnh");
+      return;
+    }
+
+    if (!caption.trim()) {
+      showWarning("Vui lòng nhập mô tả cho bài viết");
       return;
     }
 
@@ -78,76 +96,43 @@ export default function CreatePost() {
     try {
       const formData = new FormData();
       
-      // Kiểm tra nếu đang chạy trên web
-      const isWeb = typeof window !== 'undefined';
+      // Xử lý ảnh cho React Native mobile
+      const filename = image.split("/").pop() || `photo_${Date.now()}.jpg`;
+      const match = /\.(\w+)$/.exec(filename);
+      let type = "image/jpeg";
       
-      if (isWeb) {
-        // Trên web, cần fetch image và convert thành File/Blob
-        try {
-          const response = await fetch(image);
-          const blob = await response.blob();
-          const filename = image.split("/").pop() || "photo.jpg";
-          
-          // Xác định MIME type từ blob hoặc extension
-          let type = blob.type || "image/jpeg";
-          if (!type || type === "application/octet-stream") {
-            const match = /\.(\w+)$/.exec(filename);
-            if (match) {
-              const ext = match[1].toLowerCase();
-              if (ext === "png") type = "image/png";
-              else if (ext === "gif") type = "image/gif";
-              else if (ext === "mp4") type = "video/mp4";
-              else if (ext === "mov") type = "video/quicktime";
-              else type = "image/jpeg";
-            }
-          }
-          
-          const file = new File([blob], filename, { type });
-          formData.append("image", file);
-        } catch (fetchError) {
-          console.error("Error fetching image for web:", fetchError);
-          Alert.alert("Lỗi", "Không thể xử lý ảnh. Vui lòng thử lại.");
-          setIsUploading(false);
-          return;
-        }
-      } else {
-        // Trên React Native mobile
-        const filename = image.split("/").pop() || "photo.jpg";
-        const match = /\.(\w+)$/.exec(filename);
-        let type = "image/jpeg";
-        
-        if (match) {
-          const ext = match[1].toLowerCase();
-          if (ext === "png") type = "image/png";
-          else if (ext === "gif") type = "image/gif";
-          else if (ext === "mp4") type = "video/mp4";
-          else if (ext === "mov") type = "video/quicktime";
-          else type = "image/jpeg";
-        }
-
-        // Format đúng cho React Native FormData
-        formData.append("image", {
-          uri: image,
-          name: filename,
-          type: type,
-        } as any);
+      if (match) {
+        const ext = match[1].toLowerCase();
+        if (ext === "png") type = "image/png";
+        else if (ext === "jpg" || ext === "jpeg") type = "image/jpeg";
+        else if (ext === "gif") type = "image/gif";
+        else if (ext === "webp") type = "image/webp";
+        else type = "image/jpeg";
       }
 
-      // Append text fields
-      if (caption && caption.trim()) {
-        formData.append("caption", caption.trim());
-      }
+      // Format cho React Native FormData
+      formData.append("image", {
+        uri: image,
+        name: filename,
+        type: type,
+      } as any);
+
+      // Thêm các trường text
+      formData.append("caption", caption.trim());
+      
       if (location && location.trim()) {
         formData.append("location", location.trim());
       }
+      
       if (hashtags && hashtags.trim()) {
         formData.append("hashtags", hashtags.trim());
       }
 
-      console.log("FormData created:", {
-        hasImage: !!image,
-        isWeb: isWeb,
-        caption: caption?.trim(),
+      console.log("Creating post with:", {
+        imageUri: image,
+        filename,
+        type,
+        caption: caption.trim(),
         location: location?.trim(),
         hashtags: hashtags?.trim(),
       });
@@ -155,20 +140,19 @@ export default function CreatePost() {
       const response = await apiService.createPost(formData);
 
       if (response.success) {
-        Alert.alert("Thành công", "Bài viết đã được tạo thành công", [
-          {
-            text: "OK",
-            onPress: () => {
-              router.push("/Home");
-            },
-          },
-        ]);
+        showSuccess("Bài viết đã được tạo thành công!", () => {
+          setImage(null);
+          setCaption("");
+          setLocation("");
+          setHashtags("");
+          router.push("/Home");
+        });
       } else {
-        Alert.alert("Lỗi", response.message || "Không thể tạo bài viết");
+        showError(response.message || "Không thể tạo bài viết");
       }
     } catch (error: any) {
       console.error("Error creating post:", error);
-      Alert.alert("Lỗi", error.message || "Không thể tạo bài viết");
+      showError("Không thể tạo bài viết. Vui lòng kiểm tra kết nối mạng.");
     } finally {
       setIsUploading(false);
     }
@@ -176,26 +160,42 @@ export default function CreatePost() {
 
   return (
     <SafeAreaProvider style={styles.container}>
-      <SafeAreaView style={[styles.container, { backgroundColor: theme.background_color }]} edges={["top"]}>
+      <View style={[styles.container, { backgroundColor: theme.background_color }]}>
         <ThemeBar />
         <Header />
         <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent}>
           <View style={styles.content}>
-            <Text style={[styles.title, { color: theme.Text_color }]}>Tạo bài đăng mới</Text>
+            <Text style={[styles.title, { color: theme.text_primary }]}>Tạo bài đăng mới</Text>
 
             {/* Image Preview */}
             <TouchableOpacity
-              style={[styles.imageContainer, { backgroundColor: theme.Text_color + "10" }]}
+              style={[styles.imageContainer, { 
+                backgroundColor: theme.background_color,
+                borderColor: theme.border_color,
+                borderWidth: 2,
+                borderStyle: 'dashed'
+              }]}
               onPress={pickImage}
-              activeOpacity={0.8}
+              activeOpacity={0.7}
             >
               {image ? (
-                <Image source={{ uri: image }} style={styles.previewImage} />
+                <View style={styles.imagePreviewWrapper}>
+                  <Image source={{ uri: image }} style={styles.previewImage} resizeMode="cover" />
+                  <TouchableOpacity 
+                    style={styles.changeImageButton}
+                    onPress={pickImage}
+                  >
+                    <MaterialIcons name="edit" size={20} color="#fff" />
+                  </TouchableOpacity>
+                </View>
               ) : (
                 <View style={styles.placeholderContainer}>
-                  <MaterialIcons name="add-photo-alternate" size={64} color={theme.Text_color + "60"} />
-                  <Text style={[styles.placeholderText, { color: theme.Text_color + "80" }]}>
-                    Chạm để chọn ảnh/video
+                  <MaterialIcons name="add-photo-alternate" size={64} color={COLORS.primary} />
+                  <Text style={[styles.placeholderText, { color: theme.text_primary }]}>
+                    Chọn ảnh từ thư viện
+                  </Text>
+                  <Text style={[styles.placeholderSubtext, { color: theme.text_secondary }]}>
+                    Chạm để chọn ảnh
                   </Text>
                 </View>
               )}
@@ -203,11 +203,15 @@ export default function CreatePost() {
 
             {/* Caption */}
             <View style={styles.inputContainer}>
-              <Text style={[styles.label, { color: theme.Text_color }]}>Mô tả</Text>
+              <Text style={[styles.label, { color: theme.text_primary }]}>Mô tả</Text>
               <TextInput
-                style={[styles.textInput, { color: theme.Text_color, borderColor: theme.Text_color + "20" }]}
+                style={[styles.textInput, { 
+                  color: theme.text_primary, 
+                  backgroundColor: theme.input_background,
+                  borderColor: theme.border_color 
+                }]}
                 placeholder="Viết mô tả cho bài đăng..."
-                placeholderTextColor={theme.Text_color + "60"}
+                placeholderTextColor={theme.text_secondary}
                 value={caption}
                 onChangeText={setCaption}
                 multiline
@@ -217,26 +221,38 @@ export default function CreatePost() {
 
             {/* Location */}
             <View style={styles.inputContainer}>
-              <Text style={[styles.label, { color: theme.Text_color }]}>Địa điểm</Text>
-              <TextInput
-                style={[styles.textInput, { color: theme.Text_color, borderColor: theme.Text_color + "20" }]}
-                placeholder="Thêm địa điểm..."
-                placeholderTextColor={theme.Text_color + "60"}
-                value={location}
-                onChangeText={setLocation}
-              />
+              <Text style={[styles.label, { color: theme.text_primary }]}>Địa điểm</Text>
+              <View style={[styles.inputWithIcon, { 
+                backgroundColor: theme.input_background,
+                borderColor: theme.border_color 
+              }]}>
+                <MaterialIcons name="location-on" size={20} color={theme.text_secondary} />
+                <TextInput
+                  style={[styles.textInputWithIcon, { color: theme.text_primary }]}
+                  placeholder="Thêm địa điểm..."
+                  placeholderTextColor={theme.text_secondary}
+                  value={location}
+                  onChangeText={setLocation}
+                />
+              </View>
             </View>
 
             {/* Hashtags */}
             <View style={styles.inputContainer}>
-              <Text style={[styles.label, { color: theme.Text_color }]}>Hashtags</Text>
-              <TextInput
-                style={[styles.textInput, { color: theme.Text_color, borderColor: theme.Text_color + "20" }]}
-                placeholder="Ví dụ: #travel #photography"
-                placeholderTextColor={theme.Text_color + "60"}
-                value={hashtags}
-                onChangeText={setHashtags}
-              />
+              <Text style={[styles.label, { color: theme.text_primary }]}>Hashtags</Text>
+              <View style={[styles.inputWithIcon, { 
+                backgroundColor: theme.input_background,
+                borderColor: theme.border_color 
+              }]}>
+                <MaterialIcons name="tag" size={20} color={theme.text_secondary} />
+                <TextInput
+                  style={[styles.textInputWithIcon, { color: theme.text_primary }]}
+                  placeholder="Ví dụ: #travel #photography"
+                  placeholderTextColor={theme.text_secondary}
+                  value={hashtags}
+                  onChangeText={setHashtags}
+                />
+              </View>
             </View>
 
             {/* Submit Button */}
@@ -244,8 +260,8 @@ export default function CreatePost() {
               style={[
                 styles.submitButton,
                 {
-                  backgroundColor: colorScheme === "dark" ? "#5A7DFE" : "#6C63FF",
-                  opacity: isUploading ? 0.6 : 1,
+                  backgroundColor: COLORS.primary,
+                  opacity: (isUploading || !image) ? 0.5 : 1,
                 },
               ]}
               onPress={handleCreatePost}
@@ -253,17 +269,23 @@ export default function CreatePost() {
               activeOpacity={0.8}
             >
               {isUploading ? (
-                <ActivityIndicator color="#ffffff" />
+                <View style={styles.uploadingContainer}>
+                  <ActivityIndicator color="#ffffff" />
+                  <Text style={[styles.submitButtonText, { marginLeft: 10 }]}>Đang đăng...</Text>
+                </View>
               ) : (
-                <Text style={styles.submitButtonText}>Đăng bài</Text>
+                <View style={styles.buttonContent}>
+                  <MaterialIcons name="cloud-upload" size={24} color="#fff" />
+                  <Text style={styles.submitButtonText}>Đăng bài</Text>
+                </View>
               )}
             </TouchableOpacity>
           </View>
         </ScrollView>
-        <SafeAreaView edges={["bottom"]}>
+        <View>
           <BottomNavigation userAvatar={userData?.avatar || userData?.profile_picture} />
-        </SafeAreaView>
-      </SafeAreaView>
+        </View>
+      </View>
     </SafeAreaProvider>
   );
 }
@@ -282,9 +304,9 @@ const styles = StyleSheet.create({
     padding: 20,
   },
   title: {
-    fontSize: COLORS.extra_large_font_size,
-    fontWeight: "bold",
-    marginBottom: 20,
+    fontSize: FONTS.h1.fontSize,
+    fontWeight: FONTS.h1.fontWeight as any,
+    marginBottom: SIZES.padding,
   },
   imageContainer: {
     width: "100%",
@@ -295,9 +317,30 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
   },
+  imagePreviewWrapper: {
+    width: "100%",
+    height: "100%",
+    position: "relative",
+  },
   previewImage: {
     width: "100%",
     height: "100%",
+  },
+  changeImageButton: {
+    position: "absolute",
+    bottom: 16,
+    right: 16,
+    backgroundColor: COLORS.primary,
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    justifyContent: "center",
+    alignItems: "center",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
+    elevation: 5,
   },
   placeholderContainer: {
     alignItems: "center",
@@ -305,39 +348,62 @@ const styles = StyleSheet.create({
   },
   placeholderText: {
     marginTop: 12,
-    fontSize: COLORS.medium_font_size,
+    fontSize: SIZES.font,
+    fontWeight: "600",
+  },
+  placeholderSubtext: {
+    marginTop: 4,
+    fontSize: SIZES.small,
   },
   inputContainer: {
     marginBottom: 20,
   },
   label: {
-    fontSize: COLORS.medium_font_size,
-    fontWeight: "600",
+    fontSize: FONTS.body1.fontSize,
+    fontWeight: FONTS.body1.fontWeight as any,
     marginBottom: 8,
   },
   textInput: {
     borderWidth: 1,
-    borderRadius: 12,
-    padding: 12,
-    fontSize: COLORS.medium_font_size,
+    borderRadius: SIZES.radius,
+    padding: SIZES.padding / 2,
+    fontSize: FONTS.body2.fontSize,
     minHeight: 100,
     textAlignVertical: "top",
   },
+  inputWithIcon: {
+    flexDirection: "row",
+    alignItems: "center",
+    borderWidth: 1,
+    borderRadius: SIZES.radius,
+    paddingHorizontal: SIZES.padding / 2,
+    paddingVertical: 10,
+  },
+  textInputWithIcon: {
+    flex: 1,
+    fontSize: FONTS.body2.fontSize,
+    marginLeft: 8,
+  },
   submitButton: {
     paddingVertical: 16,
-    borderRadius: 12,
+    borderRadius: SIZES.radius,
     alignItems: "center",
     justifyContent: "center",
     marginTop: 10,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 8,
+    ...SHADOWS.medium,
+  },
+  buttonContent: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
+  uploadingContainer: {
+    flexDirection: "row",
+    alignItems: "center",
   },
   submitButtonText: {
     color: "#ffffff",
-    fontSize: COLORS.large_font_size,
-    fontWeight: "bold",
+    fontSize: FONTS.h3.fontSize,
+    fontWeight: FONTS.h3.fontWeight as any,
   },
 });

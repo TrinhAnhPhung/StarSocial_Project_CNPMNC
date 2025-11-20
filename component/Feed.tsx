@@ -8,11 +8,14 @@ import {
   RefreshControl,
   Animated,
 } from 'react-native';
-import { COLORS } from '../constants/color';
+import { COLORS, SIZES } from '../constants/color';
 import PostCard from './PostCard';
+import CommentModal from './CommentModal';
 import apiService from '../services/api';
 import authService from '../services/authService';
 import AppLoader from './AppLoader';
+import { useRouter } from 'expo-router';
+import { showError } from '../utils/notification';
 
 type Post = {
   id: string;
@@ -34,8 +37,12 @@ export default function Feed() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [currentUser, setCurrentUser] = useState<any>(null);
+  const [commentModalVisible, setCommentModalVisible] = useState(false);
+  const [selectedPostId, setSelectedPostId] = useState<string>('');
+  const [selectedPostAuthor, setSelectedPostAuthor] = useState<string>('');
   const colorScheme = useColorScheme();
   const theme = COLORS[colorScheme ?? 'dark'] ?? COLORS.dark;
+  const router = useRouter();
 
   useEffect(() => {
     loadUserData();
@@ -86,6 +93,7 @@ export default function Feed() {
       }
     } catch (error) {
       console.error('Error loading posts:', error);
+      showError('Không thể tải bài đăng. Vui lòng kiểm tra kết nối mạng.');
       // Fallback với dữ liệu mẫu nếu API lỗi
       setPosts(getMockPosts());
     } finally {
@@ -147,8 +155,19 @@ export default function Feed() {
   };
 
   const handleComment = (postId: string) => {
-    console.log('Comment on post:', postId);
-    // TODO: Navigate to comments screen
+    const post = posts.find(p => p.id === postId);
+    if (post) {
+      // Option 1: Use modal
+      setSelectedPostId(postId);
+      setSelectedPostAuthor(post.username);
+      setCommentModalVisible(true);
+      
+      // Option 2: Navigate to Comments screen (uncomment to use)
+      // router.push({
+      //   pathname: '/Comments',
+      //   params: { postId, post: JSON.stringify(post) }
+      // });
+    }
   };
 
   const handleShare = (postId: string) => {
@@ -161,19 +180,29 @@ export default function Feed() {
     // TODO: Implement bookmark functionality
   };
 
-  const handleOptions = (postId: string) => {
-    console.log('Options for post:', postId);
-    // TODO: Show options modal
+  const handleEdit = (postId: string) => {
+    console.log('Edit post:', postId);
+    // TODO: Implement edit functionality
+  };
+
+  const handleDelete = (postId: string) => {
+    console.log('Delete post:', postId);
+    // TODO: Implement delete functionality
+  };
+
+  const handleReport = (postId: string) => {
+    console.log('Report post:', postId);
+    // TODO: Implement report functionality
   };
 
   if (loading) {
     return (
       <AppLoader
         message="Đang tải bài đăng..."
-        containerStyle={[
-          styles.loadingContainer,
-          { backgroundColor: theme.background_color },
-        ]}
+        containerStyle={{
+          ...styles.loadingContainer,
+          backgroundColor: theme.background_color,
+        }}
         logoSize={64}
       />
     );
@@ -214,37 +243,48 @@ export default function Feed() {
           onComment={handleComment}
           onShare={handleShare}
           onBookmark={handleBookmark}
-          onOptions={handleOptions}
+          onEdit={handleEdit}
+          onDelete={handleDelete}
+          onReport={handleReport}
         />
       </Animated.View>
     );
   });
 
   return (
-    <FlatList
-      data={posts}
-      renderItem={({ item, index }) => <AnimatedPostCard item={item} index={index} />}
-      keyExtractor={(item) => item.id}
-      contentContainerStyle={[
-        styles.listContent,
-        { backgroundColor: theme.background_color },
-      ]}
-      refreshControl={
-        <RefreshControl
-          refreshing={refreshing}
-          onRefresh={handleRefresh}
-          tintColor={colorScheme === 'dark' ? '#5A7DFE' : '#6C63FF'}
-          colors={[colorScheme === 'dark' ? '#5A7DFE' : '#6C63FF']}
-        />
-      }
-      ListEmptyComponent={
-        <View style={styles.emptyContainer}>
-          <Text style={[styles.emptyText, { color: theme.Text_color + 'AA' }]}>
-            Chưa có bài đăng nào
-          </Text>
-        </View>
-      }
-    />
+    <View style={{ flex: 1 }}>
+      <FlatList
+        data={posts}
+        renderItem={({ item, index }) => <AnimatedPostCard item={item} index={index} />}
+        keyExtractor={(item) => item.id}
+        contentContainerStyle={[
+          styles.listContent,
+          { backgroundColor: theme.background_color },
+        ]}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={handleRefresh}
+            tintColor={colorScheme === 'dark' ? '#5A7DFE' : '#6C63FF'}
+            colors={[colorScheme === 'dark' ? '#5A7DFE' : '#6C63FF']}
+          />
+        }
+        ListEmptyComponent={
+          <View style={styles.emptyContainer}>
+            <Text style={[styles.emptyText, { color: theme.Text_color + 'AA' }]}>
+              Chưa có bài đăng nào
+            </Text>
+          </View>
+        }
+      />
+      
+      <CommentModal
+        visible={commentModalVisible}
+        onClose={() => setCommentModalVisible(false)}
+        postId={selectedPostId}
+        postAuthor={selectedPostAuthor}
+      />
+    </View>
   );
 }
 
@@ -263,7 +303,7 @@ const styles = StyleSheet.create({
     paddingVertical: 50,
   },
   emptyText: {
-    fontSize: COLORS.medium_font_size,
+    fontSize: SIZES.font,
   },
 });
 

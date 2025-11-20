@@ -17,7 +17,7 @@ import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
 import React, { useCallback, useEffect, useMemo, useState, useRef } from "react";
 import { MaterialIcons } from "@expo/vector-icons";
 import { ThemeBar } from "../component/themeBar";
-import { COLORS } from "../constants/color";
+import { COLORS, SIZES } from "../constants/color";
 import Header from "../component/Header";
 import BottomNavigation from "../component/BottomNavigation";
 import authService from "../services/authService";
@@ -496,9 +496,8 @@ export default function Explore() {
 
   return (
     <SafeAreaProvider style={styles.container}>
-      <SafeAreaView
+      <View
         style={[styles.container, { backgroundColor: theme.background_color }]}
-        edges={["top"]}
       >
         <ThemeBar />
         <Header />
@@ -715,10 +714,10 @@ export default function Explore() {
           </SafeAreaView>
         </Modal>
 
-        <SafeAreaView edges={["bottom"]}>
+        <View>
           <BottomNavigation userAvatar={userData?.avatar || userData?.profile_picture} />
-        </SafeAreaView>
-      </SafeAreaView>
+        </View>
+      </View>
     </SafeAreaProvider>
   );
 }
@@ -748,7 +747,7 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
   subtitle: {
-    fontSize: COLORS.medium_font_size,
+    fontSize: SIZES.font,
     lineHeight: 22,
     marginBottom: 18,
   },
@@ -763,7 +762,7 @@ const styles = StyleSheet.create({
   },
   searchInput: {
     flex: 1,
-    fontSize: COLORS.medium_font_size,
+    fontSize: SIZES.font,
     marginHorizontal: 8,
   },
   clearButton: {
@@ -771,19 +770,19 @@ const styles = StyleSheet.create({
   },
   errorText: {
     marginBottom: 8,
-    fontSize: COLORS.small_font_size,
+    fontSize: SIZES.small,
   },
   section: {
     marginTop: 20,
   },
   sectionTitle: {
-    fontSize: COLORS.large_font_size,
+    fontSize: SIZES.h2,
     fontWeight: "600",
     marginBottom: 12,
   },
   sectionSubtitle: {
     marginTop: 20,
-    fontSize: COLORS.medium_font_size,
+    fontSize: SIZES.font,
     fontWeight: "500",
   },
   trendingList: {
@@ -797,7 +796,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
   },
   trendingTagText: {
-    fontSize: COLORS.small_font_size,
+    fontSize: SIZES.small,
     fontWeight: "600",
   },
   suggestedList: {
@@ -820,7 +819,7 @@ const styles = StyleSheet.create({
     backgroundColor: "#E0E0E0",
   },
   suggestedName: {
-    fontSize: COLORS.small_font_size,
+    fontSize: SIZES.small,
     textAlign: "center",
     fontWeight: "600",
   },
@@ -852,11 +851,11 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
   },
   postUsername: {
-    fontSize: COLORS.medium_font_size,
+    fontSize: SIZES.font,
     fontWeight: "600",
   },
   postLocation: {
-    fontSize: COLORS.small_font_size,
+    fontSize: SIZES.small,
     marginTop: 2,
     flexDirection: "row",
     alignItems: "center",
@@ -874,7 +873,7 @@ const styles = StyleSheet.create({
   },
   statText: {
     color: "#ffffff99",
-    fontSize: COLORS.small_font_size,
+    fontSize: SIZES.small,
     fontWeight: "500",
   },
   sponsorBadge: {
@@ -887,7 +886,7 @@ const styles = StyleSheet.create({
   },
   sponsorBadgeText: {
     color: "#ffffff",
-    fontSize: COLORS.small_font_size,
+    fontSize: SIZES.small,
     fontWeight: "700",
   },
   avatarGradient: {

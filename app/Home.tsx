@@ -81,7 +81,7 @@ export default function Home() {
 
   return (
     <SafeAreaProvider style={styles.container}>
-      <SafeAreaView style={[styles.container, { backgroundColor: theme.background_color }]} edges={['top']}>
+      <View style={[styles.container, { backgroundColor: theme.background_color }]}>
         <ThemeBar />
         <Header
           onNotificationPress={() => Alert.alert('Thông báo', 'Tính năng thông báo đang phát triển')}
@@ -119,10 +119,10 @@ export default function Home() {
             </Animated.View>
           </TouchableOpacity>
         </View>
-        <SafeAreaView edges={['bottom']}>
+        <View>
           <BottomNavigation userAvatar={userData?.avatar || userData?.profile_picture} />
-        </SafeAreaView>
-      </SafeAreaView>
+        </View>
+      </View>
     </SafeAreaProvider>
   );
 }

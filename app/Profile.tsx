@@ -1,7 +1,7 @@
 import { StyleSheet, Text, View, useColorScheme, ScrollView, TouchableOpacity, Alert, Animated, ActivityIndicator } from "react-native";
 import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
 import { ThemeBar } from "../component/themeBar";
-import { COLORS } from "../constants/color";
+import { COLORS, SIZES } from "../constants/color";
 import Header from "../component/Header";
 import BottomNavigation from "../component/BottomNavigation";
 import { useState, useEffect, useRef } from "react";
@@ -145,7 +145,7 @@ export default function Profile() {
 
   return (
     <SafeAreaProvider style={styles.container}>
-      <SafeAreaView style={[styles.container, { backgroundColor: theme.background_color }]} edges={['top']}>
+      <View style={[styles.container, { backgroundColor: theme.background_color }]}>
         <ThemeBar />
         <Header />
         <ScrollView 
@@ -271,10 +271,10 @@ export default function Profile() {
             )}
           </View>
         </ScrollView>
-        <SafeAreaView edges={['bottom']}>
+        <View>
           <BottomNavigation userAvatar={userData?.avatar || userData?.profile_picture} />
-        </SafeAreaView>
-      </SafeAreaView>
+        </View>
+      </View>
     </SafeAreaProvider>
   );
 }
@@ -328,13 +328,13 @@ const styles = StyleSheet.create({
     borderColor: 'transparent',
   },
   username: {
-    fontSize: COLORS.extra_large_font_size,
+    fontSize: SIZES.h1,
     fontWeight: 'bold',
     marginBottom: 8,
     textAlign: 'center',
   },
   email: {
-    fontSize: COLORS.medium_font_size,
+    fontSize: SIZES.font,
     textAlign: 'center',
   },
   section: {
@@ -364,7 +364,7 @@ const styles = StyleSheet.create({
     gap: 15,
   },
   menuText: {
-    fontSize: COLORS.medium_font_size,
+    fontSize: SIZES.font,
     fontWeight: '600',
     flex: 1,
   },

@@ -1,4 +1,4 @@
-import React, { ReactNode, useMemo, useRef } from 'react';
+import React, { ReactNode, useMemo, useRef, useState } from 'react';
 import {
   View,
   Text,
@@ -7,10 +7,15 @@ import {
   useColorScheme,
   Animated,
   Pressable,
+  TouchableOpacity,
+  Modal,
+  Alert,
 } from 'react-native';
-import { COLORS } from '../constants/color';
+import { COLORS, SIZES, FONTS, SHADOWS } from '../constants/color';
 import { getAvatarUrl, getPostImageUrl } from '../utils/imageUtils';
 import { HeartIcon, CommentIcon, ShareIcon, BookmarkIcon, MoreIcon } from './icons/PostIcons';
+import { Ionicons } from '@expo/vector-icons';
+import authService from '../services/authService';
 
 type PostCardProps = {
   post: {
@@ -26,12 +31,15 @@ type PostCardProps = {
     isSponsor?: boolean;
     sponsorName?: string;
     sponsorLogo?: string;
+    user_id?: string;
   };
   onLike?: (postId: string) => void;
   onComment?: (postId: string) => void;
   onShare?: (postId: string) => void;
   onBookmark?: (postId: string) => void;
-  onOptions?: (postId: string) => void;
+  onEdit?: (postId: string) => void;
+  onDelete?: (postId: string) => void;
+  onReport?: (postId: string) => void;
 };
 
 type IconButtonProps = {
@@ -40,8 +48,6 @@ type IconButtonProps = {
   postId: string;
   accessibilityLabel: string;
   isActive?: boolean;
-  accentColor: string;
-  colorScheme: string | null | undefined;
 };
 
 export default function PostCard({
@@ -50,7 +56,9 @@ export default function PostCard({
   onComment,
   onShare,
   onBookmark,
-  onOptions,
+  onEdit,
+  onDelete,
+  onReport,
 }: PostCardProps) {
   const colorScheme = useColorScheme();
   const theme = COLORS[colorScheme ?? 'dark'] ?? COLORS.dark;
@@ -59,6 +67,26 @@ export default function PostCard({
   const profileScale = useRef(new Animated.Value(1)).current;
   const imageOpacity = useRef(new Animated.Value(0)).current;
   const AnimatedImage = useMemo(() => Animated.createAnimatedComponent(Image), []);
+  
+  const [showFullCaption, setShowFullCaption] = useState(false);
+  const [showOptionsModal, setShowOptionsModal] = useState(false);
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+  const MAX_CAPTION_LENGTH = 100;
+
+  React.useEffect(() => {
+    loadCurrentUser();
+  }, []);
+
+  const loadCurrentUser = async () => {
+    try {
+      const userData = await authService.getUserData();
+      setCurrentUserId(userData?.id?.toString());
+    } catch (error) {
+      console.error('Error loading user:', error);
+    }
+  };
+
+  const isOwner = currentUserId && post.user_id && currentUserId === post.user_id.toString();
 
   const formatLikes = (count: number) => {
     if (count >= 1000000) {
@@ -135,25 +163,111 @@ export default function PostCard({
             />
           </Animated.View>
           <View style={styles.userDetails}>
-            <Text style={[styles.username, { color: theme.Text_color }]}>
+            <Text style={[styles.username, { color: theme.text_primary }]}>
               {post.username}
             </Text>
             {post.location && (
-              <Text style={[styles.location, { color: theme.Text_color + 'AA' }]}>
+              <Text style={[styles.location, { color: theme.text_secondary }]}>
                 {post.location}
               </Text>
             )}
           </View>
         </Pressable>
-        <Pressable
-          onPress={() => onOptions && onOptions(post.id)}
+        <TouchableOpacity
+          onPress={() => setShowOptionsModal(true)}
           style={styles.optionsButton}
-          accessibilityRole="button"
-          accessibilityLabel="Tùy chọn bài viết"
+          activeOpacity={0.7}
         >
-          <MoreIcon size={20} color={theme.Text_color} />
-        </Pressable>
+          <Ionicons name="ellipsis-horizontal" size={24} color={theme.text_primary} />
+        </TouchableOpacity>
       </View>
+
+      {/* Options Modal */}
+      <Modal
+        visible={showOptionsModal}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowOptionsModal(false)}
+      >
+        <Pressable 
+          style={styles.modalOverlay}
+          onPress={() => setShowOptionsModal(false)}
+        >
+          <View style={[styles.modalContent, { backgroundColor: theme.card_background }]}>
+            {isOwner ? (
+              <>
+                <TouchableOpacity
+                  style={styles.modalOption}
+                  onPress={() => {
+                    setShowOptionsModal(false);
+                    onEdit && onEdit(post.id);
+                  }}
+                >
+                  <Ionicons name="create-outline" size={24} color={COLORS.primary} />
+                  <Text style={[styles.modalOptionText, { color: theme.text_primary }]}>
+                    Chỉnh sửa bài viết
+                  </Text>
+                </TouchableOpacity>
+                <View style={[styles.modalDivider, { backgroundColor: theme.border_color }]} />
+                <TouchableOpacity
+                  style={styles.modalOption}
+                  onPress={() => {
+                    setShowOptionsModal(false);
+                    Alert.alert(
+                      'Xóa bài viết',
+                      'Bạn có chắc chắn muốn xóa bài viết này?',
+                      [
+                        { text: 'Hủy', style: 'cancel' },
+                        { 
+                          text: 'Xóa', 
+                          style: 'destructive',
+                          onPress: () => onDelete && onDelete(post.id)
+                        }
+                      ]
+                    );
+                  }}
+                >
+                  <Ionicons name="trash-outline" size={24} color={COLORS.danger} />
+                  <Text style={[styles.modalOptionText, { color: COLORS.danger }]}>
+                    Xóa bài viết
+                  </Text>
+                </TouchableOpacity>
+              </>
+            ) : (
+              <TouchableOpacity
+                style={styles.modalOption}
+                onPress={() => {
+                  setShowOptionsModal(false);
+                  onReport && onReport(post.id);
+                }}
+              >
+                <Ionicons name="flag-outline" size={24} color={COLORS.warning} />
+                <Text style={[styles.modalOptionText, { color: theme.text_primary }]}>
+                  Báo cáo bài viết
+                </Text>
+              </TouchableOpacity>
+            )}
+          </View>
+        </Pressable>
+      </Modal>
+
+      {/* Caption - Moved to top */}
+      {post.caption && (
+        <View style={styles.captionSection}>
+          <Text style={[styles.caption, { color: theme.text_primary }]}>
+            {showFullCaption || post.caption.length <= MAX_CAPTION_LENGTH
+              ? post.caption
+              : `${post.caption.substring(0, MAX_CAPTION_LENGTH)}...`}
+          </Text>
+          {post.caption.length > MAX_CAPTION_LENGTH && (
+            <TouchableOpacity onPress={() => setShowFullCaption(!showFullCaption)}>
+              <Text style={[styles.showMoreText, { color: COLORS.primary }]}>
+                {showFullCaption ? 'Thu gọn' : 'Hiển thị thêm'}
+              </Text>
+            </TouchableOpacity>
+          )}
+        </View>
+      )}
 
       {/* Sponsor Banner */}
       {post.isSponsor && (
@@ -166,7 +280,7 @@ export default function PostCard({
                 defaultSource={require('../assets/logo.png')}
               />
             )}
-            <Text style={[styles.sponsorText, { color: theme.Text_color + 'AA' }]}>
+            <Text style={[styles.sponsorText, { color: theme.text_secondary }]}>
               Sponsors
             </Text>
           </View>
@@ -192,88 +306,67 @@ export default function PostCard({
             postId={post.id}
             accessibilityLabel="Thả tim bài viết"
             isActive={post.isLiked}
-            accentColor={accentColor}
-            colorScheme={colorScheme}
           >
-            <HeartIcon
-              isLiked={post.isLiked || false}
-              size={28}
-              color={post.isLiked ? '#FF3040' : theme.Text_color}
+            <Ionicons 
+              name={post.isLiked ? "heart" : "heart-outline"} 
+              size={28} 
+              color={post.isLiked ? '#FF3040' : theme.text_primary}
             />
           </IconButton>
           <IconButton
             onPress={onComment}
             postId={post.id}
             accessibilityLabel="Bình luận bài viết"
-            accentColor={accentColor}
-            colorScheme={colorScheme}
           >
-            <CommentIcon size={28} color={theme.Text_color} />
+            <Ionicons name="chatbubble-outline" size={26} color={theme.text_primary} />
           </IconButton>
           <IconButton
             onPress={onShare}
             postId={post.id}
             accessibilityLabel="Chia sẻ bài viết"
-            accentColor={accentColor}
-            colorScheme={colorScheme}
           >
-            <ShareIcon size={28} color={theme.Text_color} />
+            <Ionicons name="paper-plane-outline" size={26} color={theme.text_primary} />
           </IconButton>
         </View>
         <View style={styles.rightActions}>
-          <View style={styles.dots}>
-            <View style={[styles.dot, { backgroundColor: theme.Text_color + '33' }]} />
-            <View style={[styles.dot, { backgroundColor: theme.Text_color + '33' }]} />
-            <View style={[styles.dot, { backgroundColor: theme.Text_color + '33' }]} />
-          </View>
           <IconButton
             onPress={onBookmark}
             postId={post.id}
             accessibilityLabel="Lưu bài viết"
-            accentColor={accentColor}
-            colorScheme={colorScheme}
           >
-            <BookmarkIcon size={28} color={theme.Text_color} />
+            <Ionicons name="bookmark-outline" size={26} color={theme.text_primary} />
           </IconButton>
         </View>
       </View>
 
       {/* Likes Count */}
       <View style={styles.likesSection}>
-        <Text style={[styles.likesText, { color: theme.Text_color }]}>
-          Thích bởi <Text style={styles.boldText}>{post.likedBy || 'Người dùng'}</Text> và{' '}
-          <Text style={styles.boldText}>{formatLikes(post.likes)}</Text> lượt thích khác
+        <Text style={[styles.likesText, { color: theme.text_primary }]}>
+          <Text style={styles.boldText}>{formatLikes(post.likes)}</Text> lượt thích
         </Text>
       </View>
-
-      {/* Caption */}
-      {post.caption && (
-        <View style={styles.captionSection}>
-          <Text style={[styles.caption, { color: theme.Text_color }]}>
-            <Text style={styles.boldText}>{post.username}</Text> {post.caption}
-          </Text>
-        </View>
-      )}
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
-    marginBottom: 24,
-    borderRadius: 28,
-    paddingBottom: 20,
-    shadowOpacity: 0.14,
-    shadowRadius: 24,
-    shadowOffset: { width: 0, height: 18 },
-    elevation: 10,
+    marginBottom: 16,
+    marginHorizontal: 12,
+    borderRadius: 16,
+    paddingBottom: 16,
+    shadowOpacity: 0.08,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 3,
   },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: 18,
-    paddingTop: 18,
+    paddingHorizontal: 16,
+    paddingTop: 16,
+    paddingBottom: 12,
   },
   userInfo: {
     flexDirection: 'row',
@@ -303,26 +396,39 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   username: {
-    fontSize: COLORS.medium_font_size,
+    ...FONTS.h3,
     fontWeight: '600',
     marginBottom: 2,
-    letterSpacing: 0.3,
   },
   location: {
-    fontSize: COLORS.small_font_size,
-    letterSpacing: 0.15,
+    ...FONTS.small,
   },
   optionsButton: {
     padding: 10,
     borderRadius: 18,
   },
-  sponsorBanner: {
-    marginHorizontal: 18,
+  captionSection: {
     paddingHorizontal: 16,
-    paddingVertical: 10,
-    borderRadius: 14,
-    marginTop: 14,
-    marginBottom: 12,
+    paddingVertical: 12,
+    marginBottom: 8,
+  },
+  caption: {
+    ...FONTS.h2,
+    lineHeight: 28,
+    fontWeight: '400',
+  },
+  showMoreText: {
+    ...FONTS.body3,
+    fontWeight: '600',
+    marginTop: 8,
+  },
+  sponsorBanner: {
+    marginHorizontal: 16,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 10,
+    marginTop: 8,
+    marginBottom: 8,
   },
   sponsorContent: {
     flexDirection: 'row',
@@ -335,88 +441,85 @@ const styles = StyleSheet.create({
     resizeMode: 'contain',
   },
   sponsorText: {
-    fontSize: COLORS.small_font_size,
+    ...FONTS.small,
     fontWeight: '500',
-    letterSpacing: 0.3,
   },
   imageContainer: {
     width: '100%',
     aspectRatio: 1,
-    borderRadius: 24,
+    borderRadius: 20,
     overflow: 'hidden',
-    marginHorizontal: 18,
+    marginTop: 12,
     marginBottom: 16,
-    shadowColor: '#00000018',
-    shadowOpacity: 0.25,
-    shadowRadius: 20,
-    shadowOffset: { width: 0, height: 12 },
-    elevation: 6,
+    backgroundColor: '#f0f0f0',
   },
   postImage: {
     width: '100%',
     height: '100%',
+    resizeMode: 'cover',
   },
   actions: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: 18,
+    paddingHorizontal: 16,
     paddingVertical: 12,
   },
   leftActions: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 14,
+    gap: 16,
   },
   rightActions: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 14,
   },
   actionButton: {
-    padding: 12,
+    padding: 8,
     justifyContent: 'center',
     alignItems: 'center',
-    borderRadius: 18,
-    shadowOpacity: 0.18,
-    shadowRadius: 8,
-    shadowOffset: { width: 0, height: 6 },
-    elevation: 4,
-    minWidth: 48,
-    minHeight: 48,
   },
   iconWrapper: {
     justifyContent: 'center',
     alignItems: 'center',
   },
-  dots: {
-    flexDirection: 'row',
-    gap: 4,
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
   },
-  dot: {
-    width: 4,
-    height: 4,
-    borderRadius: 2,
+  modalContent: {
+    width: '80%',
+    borderRadius: SIZES.radius,
+    padding: 8,
+    ...SHADOWS.dark,
+  },
+  modalOption: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 16,
+    gap: 16,
+  },
+  modalOptionText: {
+    ...FONTS.body3,
+    fontWeight: '500',
+  },
+  modalDivider: {
+    height: 1,
+    marginHorizontal: 16,
   },
   likesSection: {
-    paddingHorizontal: 18,
-    marginBottom: 10,
+    paddingHorizontal: 16,
+    marginBottom: 8,
   },
   likesText: {
-    fontSize: COLORS.medium_font_size,
-    lineHeight: 22,
-    letterSpacing: 0.2,
+    ...FONTS.body3,
+    lineHeight: 20,
   },
   boldText: {
-    fontWeight: '600',
-  },
-  captionSection: {
-    paddingHorizontal: 18,
-  },
-  caption: {
-    fontSize: COLORS.medium_font_size,
-    lineHeight: 22,
-    letterSpacing: 0.2,
+    fontWeight: '700',
   },
 });
 
@@ -426,53 +529,64 @@ function IconButton({
   postId,
   accessibilityLabel,
   isActive,
-  accentColor,
-  colorScheme,
 }: IconButtonProps) {
   const scaleRef = useRef(new Animated.Value(1)).current;
+  const opacityRef = useRef(new Animated.Value(1)).current;
 
   const handlePressIn = () => {
-    Animated.spring(scaleRef, {
-      toValue: 0.9,
-      useNativeDriver: true,
-      speed: 16,
-    }).start();
+    Animated.parallel([
+      Animated.spring(scaleRef, {
+        toValue: 0.75,
+        useNativeDriver: true,
+        speed: 20,
+        bounciness: 10,
+      }),
+      Animated.timing(opacityRef, {
+        toValue: 0.6,
+        duration: 100,
+        useNativeDriver: true,
+      }),
+    ]).start();
   };
 
   const handlePressOut = () => {
-    Animated.spring(scaleRef, {
-      toValue: 1,
-      useNativeDriver: true,
-      speed: 14,
-    }).start();
+    Animated.parallel([
+      Animated.spring(scaleRef, {
+        toValue: 1,
+        useNativeDriver: true,
+        speed: 18,
+        bounciness: 12,
+      }),
+      Animated.timing(opacityRef, {
+        toValue: 1,
+        duration: 100,
+        useNativeDriver: true,
+      }),
+    ]).start();
   };
 
-  const backgroundColor = isActive
-    ? accentColor + '22'
-    : colorScheme === 'dark'
-    ? 'rgba(255,255,255,0.04)'
-    : 'rgba(90,125,254,0.08)';
-
   return (
-    <Pressable
-      style={({ pressed }) => [
-        styles.actionButton,
-        {
-          backgroundColor,
-          transform: [{ scale: pressed ? 0.94 : 1 }],
-          shadowColor: accentColor + '40',
-        },
-      ]}
+    <TouchableOpacity
+      style={styles.actionButton}
       onPress={() => onPress && onPress(postId)}
       onPressIn={handlePressIn}
       onPressOut={handlePressOut}
+      activeOpacity={1}
       accessibilityRole="button"
       accessibilityLabel={accessibilityLabel}
     >
-      <Animated.View style={[styles.iconWrapper, { transform: [{ scale: scaleRef }] }]}>
+      <Animated.View 
+        style={[
+          styles.iconWrapper, 
+          { 
+            transform: [{ scale: scaleRef }],
+            opacity: opacityRef 
+          }
+        ]}
+      >
         {children}
       </Animated.View>
-    </Pressable>
+    </TouchableOpacity>
   );
 }
 

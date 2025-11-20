@@ -9,7 +9,7 @@ import {
   ViewStyle,
 } from "react-native";
 import { useColorScheme } from "react-native";
-import { COLORS } from "../constants/color";
+import { COLORS, SIZES } from "../constants/color";
 
 type AppLoaderProps = {
   message?: string;
@@ -130,7 +130,7 @@ const styles = StyleSheet.create({
     resizeMode: "contain",
   },
   message: {
-    fontSize: COLORS.medium_font_size,
+    fontSize: SIZES.font,
     textAlign: "center",
     paddingHorizontal: 24,
   },

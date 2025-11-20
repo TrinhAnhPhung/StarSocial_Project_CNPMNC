@@ -22,6 +22,7 @@ import { getAvatarUrl } from "../utils/imageUtils";
 import { Image } from "react-native";
 import AppLoader from "../component/AppLoader";
 import authService from "../services/authService";
+import socketService from "../services/socket";
 
 interface Message {
   id: string;
@@ -37,16 +38,22 @@ interface Message {
 }
 
 export default function ChatDetail() {
-  const { id: conversationId, userId } = useLocalSearchParams<{
+  const { id: conversationId, userId, name, avatar } = useLocalSearchParams<{
     id: string;
     userId: string;
+    name?: string;
+    avatar?: string;
   }>();
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputText, setInputText] = useState("");
   const [isLoading, setIsLoading] = useState(true);
   const [isSending, setIsSending] = useState(false);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
-  const [participantName, setParticipantName] = useState("Người dùng");
+  const [participantName, setParticipantName] = useState(name || "Người dùng");
+  const [isTyping, setIsTyping] = useState(false);
+  const [otherUserTyping, setOtherUserTyping] = useState(false);
+  const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
   const colorScheme = useColorScheme();
   const theme = COLORS[colorScheme ?? "dark"] ?? COLORS.dark;
   const router = useRouter();
@@ -54,16 +61,115 @@ export default function ChatDetail() {
   const fadeAnim = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
+    if (name) setParticipantName(name);
     loadCurrentUser();
     loadMessages();
     
+    // Connect to socket
+    const socket = socketService.connect();
+    
+    if (conversationId) {
+      socketService.joinRoom(conversationId);
+      
+      // Listen for new messages
+      socketService.onReceiveMessage((newMessage: any) => {
+        console.log("Received message:", newMessage);
+        
+        setMessages((prev) => {
+          // Check if message already exists by ID
+          const exists = prev.some(msg => msg.id === newMessage.Message_id.toString());
+          if (exists) return prev;
+          
+          const formattedMessage: Message = {
+            id: newMessage.Message_id.toString(),
+            content: newMessage.Content,
+            sender_id: newMessage.Sender_id,
+            created_at: newMessage.Sent_at,
+            sender: {
+              id: newMessage.Sender_id,
+              first_name: newMessage.First_Name || '', 
+              last_name: newMessage.Last_name || '',
+              avatar: newMessage.profile_picture_url
+            }
+          };
+
+          // If it's my message, try to find a matching temp message and replace it
+          if (newMessage.Sender_id === currentUserId) {
+              const tempMsgIndex = prev.findIndex(m => m.id.startsWith('temp-') && m.content === newMessage.Content);
+              if (tempMsgIndex !== -1) {
+                  const newMsgs = [...prev];
+                  newMsgs[tempMsgIndex] = formattedMessage;
+                  return newMsgs;
+              }
+          }
+
+          return [...prev, formattedMessage];
+        });
+        
+        // Scroll to bottom
+        setTimeout(() => {
+          flatListRef.current?.scrollToEnd({ animated: true });
+        }, 100);
+      });
+
+      // Listen for typing events
+      socketService.onUserTyping((data: any) => {
+        if (data.userId !== currentUserId) {
+          setOtherUserTyping(true);
+        }
+      });
+
+      socketService.onUserStoppedTyping((data: any) => {
+        if (data.userId !== currentUserId) {
+          setOtherUserTyping(false);
+        }
+      });
+    }
+
     // Fade in animation
     Animated.timing(fadeAnim, {
       toValue: 1,
       duration: 400,
       useNativeDriver: true,
     }).start();
-  }, [conversationId]);
+
+    return () => {
+      socketService.off('receive_message');
+      socketService.off('user_typing');
+      socketService.off('user_stopped_typing');
+      // Don't disconnect socket here as it might be used by other screens, 
+      // but for now we can leave it connected.
+    };
+  }, [conversationId, currentUserId]); // Add currentUserId to dependency to ensure we can check isMyMsg correctly
+
+  const handleInputChange = (text: string) => {
+    setInputText(text);
+    
+    if (!conversationId || !currentUserId) return;
+
+    if (!isTyping) {
+      setIsTyping(true);
+      socketService.sendTyping({
+        conversationId,
+        userId: currentUserId,
+        userName: 'User' // You can pass real name if available
+      });
+    }
+
+    // Clear existing timeout
+    if (typingTimeoutRef.current) {
+      clearTimeout(typingTimeoutRef.current);
+    }
+
+    // Set new timeout to stop typing
+    typingTimeoutRef.current = setTimeout(() => {
+      setIsTyping(false);
+      socketService.sendStopTyping({
+        conversationId,
+        userId: currentUserId
+      });
+    }, 2000);
+  };
 
   const loadCurrentUser = async () => {
     try {
@@ -83,15 +189,32 @@ export default function ChatDetail() {
       setIsLoading(true);
       const result = await apiService.getConversationMessages(conversationId);
       if (result.success) {
-        const messagesData = result.data || [];
+        const messagesData = (result.data || []).map((item: any) => ({
+          id: item.Message_id.toString(),
+          content: item.Content,
+          sender_id: item.Sender_id,
+          created_at: item.Sent_at,
+          sender: {
+            id: item.Sender_id,
+            first_name: item.First_Name || '',
+            last_name: item.Last_name || '',
+            avatar: item.profile_picture_url
+          }
+        }));
         setMessages(messagesData);
         
         // Get participant name from first message
         if (messagesData.length > 0) {
-          const firstMessage = messagesData[0];
-          if (firstMessage.sender) {
-            setParticipantName(
-              `${firstMessage.sender.first_name} ${firstMessage.sender.last_name}`
+          // Find a message that is NOT from current user to get participant name
+          // But we might not have currentUserId set yet or it might be async.
+          // Alternatively, we can use the first message that is not me, or just use the first message sender if it's not me.
+          // However, we don't have easy access to "who is the other person" from just messages if all messages are from me.
+          // But usually there are messages from both.
+          // Let's try to find a message from the other person.
+          const otherMessage = messagesData.find((m: Message) => m.sender_id !== currentUserId);
+          if (otherMessage && otherMessage.sender) {
+             setParticipantName(
+              `${otherMessage.sender.first_name} ${otherMessage.sender.last_name}`
             );
           }
         }
@@ -113,48 +236,42 @@ export default function ChatDetail() {
 
   const handleSendMessage = async () => {
     if (!inputText.trim() || !conversationId || isSending) return;
+    if (!currentUserId) return;
 
     const content = inputText.trim();
     setInputText("");
-    setIsSending(true);
+    
+    // Stop typing immediately when sending
+    if (isTyping) {
+      setIsTyping(false);
+      if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
+      socketService.sendStopTyping({
+        conversationId,
+        userId: currentUserId
+      });
+    }
 
     // Optimistic update
+    const tempId = `temp-${Date.now()}`;
     const tempMessage: Message = {
-      id: `temp-${Date.now()}`,
+      id: tempId,
       content,
-      sender_id: currentUserId || "",
+      sender_id: currentUserId,
       created_at: new Date().toISOString(),
     };
     setMessages((prev) => [...prev, tempMessage]);
 
-    try {
-      const result = await apiService.sendMessage(conversationId, content);
-      if (result.success) {
-        // Replace temp message with real one
-        setMessages((prev) =>
-          prev.map((msg) =>
-            msg.id === tempMessage.id ? result.data : msg
-          )
-        );
-        
-        // Scroll to bottom
-        setTimeout(() => {
-          flatListRef.current?.scrollToEnd({ animated: true });
-        }, 100);
-      } else {
-        // Remove temp message on error
-        setMessages((prev) => prev.filter((msg) => msg.id !== tempMessage.id));
-        Alert.alert("Lỗi", result.message || "Không thể gửi tin nhắn");
-        setInputText(content); // Restore input text
-      }
-    } catch (error: any) {
-      // Remove temp message on error
-      setMessages((prev) => prev.filter((msg) => msg.id !== tempMessage.id));
-      Alert.alert("Lỗi", error.message || "Không thể gửi tin nhắn");
-      setInputText(content); // Restore input text
-    } finally {
-      setIsSending(false);
-    }
+    // Send via Socket
+    socketService.sendMessage({
+        conversationId,
+        senderId: currentUserId,
+        content
+    });
+    
+    // Scroll to bottom
+    setTimeout(() => {
+      flatListRef.current?.scrollToEnd({ animated: true });
+    }, 100);
   };
 
   const formatTime = (dateString: string) => {
@@ -292,6 +409,15 @@ export default function ChatDetail() {
             onContentSizeChange={() => {
               flatListRef.current?.scrollToEnd({ animated: true });
             }}
+            ListFooterComponent={
+              otherUserTyping ? (
+                <View style={{ paddingHorizontal: 16, paddingVertical: 8 }}>
+                  <Text style={{ color: theme.Text_color + '80', fontStyle: 'italic', fontSize: 12 }}>
+                    Đang nhập...
+                  </Text>
+                </View>
+              ) : null
+            }
           />
 
           <View
@@ -313,7 +439,7 @@ export default function ChatDetail() {
                 },
               ]}
               value={inputText}
-              onChangeText={setInputText}
+              onChangeText={handleInputChange}
               placeholder="Nhập tin nhắn..."
               placeholderTextColor={theme.Text_color + "60"}
               multiline

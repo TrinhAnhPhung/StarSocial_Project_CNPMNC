@@ -1,39 +1,44 @@
 import { useEffect, useState } from "react";
-import { StyleSheet, Text, View, Image, TextInput, TouchableOpacity, Alert, useColorScheme, StatusBar, ActivityIndicator } from "react-native";
+import { StyleSheet, Text, View, Image, TextInput, TouchableOpacity, ActivityIndicator, useColorScheme, KeyboardAvoidingView, Platform, ScrollView } from "react-native";
 import AppIntroSlider from 'react-native-app-intro-slider';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { COLORS } from "../constants/color";
-import { Link, useRouter } from "expo-router";
+import { COLORS, SIZES, FONTS, SHADOWS } from "../constants/color";
+import { useRouter } from "expo-router";
 import { ThemeBar } from "../component/themeBar";
 import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
 import authService from "../services/authService";
+import { showSuccess, showError, showWarning } from "../utils/notification";
+import { Ionicons } from "@expo/vector-icons";
 
 const slides = [
   {
     id: '1',
     image: require('../assets/intro1.png'),
-    title: 'Connect with friends and the world around you.',
+    title: 'Connect with friends',
     subtitle: 'Share your moments, thoughts, and experiences with a vibrant community.'
   },
   {
     id: '2',
     image: require('../assets/intro2.png'),
-    title: 'Discover new interests and communities.',
+    title: 'Discover new interests',
     subtitle: 'Explore a wide range of topics, join groups, and find like-minded individuals.'
   },
   {
     id: '3',
     image: require('../assets/intro3.png'),
-    title: 'Stay updated with the latest news and trends.',
+    title: 'Stay updated',
     subtitle: 'Get real-time updates on current events, trending topics, and breaking news.'
   }
 ]
+
 export default function Page() {
   const [showHomePage, setShowHomePage] = useState(false);
   const [showIntro, setShowIntro] = useState<boolean | null>(null);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  
   const colorScheme = useColorScheme();
   const theme = COLORS[colorScheme ?? 'dark'] ?? COLORS.dark;
   const router = useRouter();
@@ -48,27 +53,26 @@ export default function Page() {
       }
     });
   }, []);
+
   const handleDone = () => {
     AsyncStorage.setItem('hasSeenIntro', 'true');
     setShowHomePage(true);
   }
 
   const handleLogin = async () => {
-    // Validation
     if (!email.trim()) {
-      Alert.alert('Lỗi', 'Vui lòng nhập email');
+      showWarning('Vui lòng nhập email');
       return;
     }
 
     if (!password.trim()) {
-      Alert.alert('Lỗi', 'Vui lòng nhập mật khẩu');
+      showWarning('Vui lòng nhập mật khẩu');
       return;
     }
 
-    // Email validation
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email)) {
-      Alert.alert('Lỗi', 'Email không hợp lệ');
+      showWarning('Email không hợp lệ');
       return;
     }
 
@@ -77,174 +81,246 @@ export default function Page() {
       const result = await authService.login(email.trim(), password);
       
       if (result.success) {
-        // Luôn chuyển đến trang Home cho tất cả người dùng
-        router.replace('/Home');
+        showSuccess('Đăng nhập thành công!', () => {
+          router.replace('/Home');
+        });
       } else {
-        Alert.alert('Lỗi đăng nhập', result.message || 'Đăng nhập thất bại');
+        showError(result.message || 'Email hoặc mật khẩu không chính xác');
       }
     } catch (error) {
-      Alert.alert('Lỗi', 'Không thể kết nối đến server. Vui lòng kiểm tra kết nối mạng và đảm bảo backend đang chạy.');
+      showError('Không thể kết nối đến server. Vui lòng kiểm tra kết nối mạng.');
       console.error('Login error:', error);
     } finally {
       setLoading(false);
     }
   }
+
   if (showIntro === null) {
-    return null; // or a loading spinner
+    return (
+      <View style={[styles.loadingContainer, { backgroundColor: theme.background_color }]}>
+        <ActivityIndicator size="large" color={COLORS.primary} />
+      </View>
+    );
   }
+
   if (showIntro && !showHomePage) {
     return (
-      // <StatusBar />
-      // <AppIntroSlider
-      //   data={slides}
-
-      //   renderItem={({ item }) => (
-      //     <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', padding: 20, backgroundColor: theme.background_color }}>
-      //       <Image source={item.image} style={{ width: 300, height: 300, marginBottom: 20 }} />
-      //       <Text style={{ fontSize: COLORS.large_font_size, fontWeight: 'bold', color: theme.Text_color, textAlign: 'center', marginBottom: 10 }}>{item.title}</Text>
-      //       <Text style={{ fontSize: COLORS.medium_font_size, color: theme.Text_color, textAlign: 'center' }}>{item.subtitle}</Text>
-      //     </View>
-      //   )}
-      //   activeDotStyle={{ backgroundColor: 'blue', width: 30 }}
-      //   showSkipButton
-      //   renderNextButton={() => <Text style={{ fontSize: COLORS.medium_font_size, color: 'blue', marginRight: 10 }}>Next</Text>}
-      //   renderSkipButton={() => <Text style={{ fontSize: COLORS.medium_font_size, color: 'blue', marginRight: 10 }}>Skip</Text>}
-      //   renderDoneButton={() => <Text style={{ fontSize: COLORS.medium_font_size, color: 'blue', marginRight: 10 }}>Done</Text>}
-      //   onDone={() => {
-      //     setShowHomePage(true);
-      //     handleDone();
-      //   }}
-      // />
       <SafeAreaView style={{ flex: 1, backgroundColor: theme.background_color }}>
-
-
         <AppIntroSlider
           data={slides}
-
           renderItem={({ item }) => (
-            <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', padding: 20, backgroundColor: theme.background_color }}>
-              <Image source={item.image} style={{ width: 300, height: 300, marginBottom: 20 }} />
-              <Text style={{ fontSize: COLORS.large_font_size, fontWeight: 'bold', color: theme.Text_color, textAlign: 'center', marginBottom: 10 }}>{item.title}</Text>
-              <Text style={{ fontSize: COLORS.medium_font_size, color: theme.Text_color, textAlign: 'center' }}>{item.subtitle}</Text>
+            <View style={[styles.slide, { backgroundColor: theme.background_color }]}>
+              <Image source={item.image} style={styles.slideImage} resizeMode="contain" />
+              <Text style={[styles.slideTitle, { color: theme.text_primary }]}>{item.title}</Text>
+              <Text style={[styles.slideSubtitle, { color: theme.text_secondary }]}>{item.subtitle}</Text>
             </View>
           )}
-          activeDotStyle={{ backgroundColor: 'blue', width: 30 }}
+          activeDotStyle={{ backgroundColor: COLORS.primary, width: 30 }}
+          dotStyle={{ backgroundColor: theme.tab_inactive }}
           showSkipButton
-          renderNextButton={() => <Text style={{ fontSize: COLORS.medium_font_size, color: 'blue', marginRight: 10 }}>Next</Text>}
-          renderSkipButton={() => <Text style={{ fontSize: COLORS.medium_font_size, color: 'blue', marginRight: 10 }}>Skip</Text>}
-          renderDoneButton={() => <Text style={{ fontSize: COLORS.medium_font_size, color: 'blue', marginRight: 10 }}>Done</Text>}
+          renderNextButton={() => <Text style={[styles.buttonText, { color: COLORS.primary }]}>Next</Text>}
+          renderSkipButton={() => <Text style={[styles.buttonText, { color: theme.text_secondary }]}>Skip</Text>}
+          renderDoneButton={() => <Text style={[styles.buttonText, { color: COLORS.primary, fontWeight: 'bold' }]}>Done</Text>}
           onDone={() => {
             setShowHomePage(true);
             handleDone();
           }}
         />
       </SafeAreaView>
-
     )
   }
-  // { flex: 1, backgroundColor: theme.background_color }
-  return (<>
-    <SafeAreaProvider style={styles.test}>
-      <SafeAreaView style={styles.test}>
+
+  return (
+    <SafeAreaProvider>
+      <SafeAreaView style={{ flex: 1, backgroundColor: theme.background_color }}>
         <ThemeBar />
-        <View style={[styles.container, { backgroundColor: theme.background_color }]}>
-
-          <Image source={require('../assets/logo.png')} style={{ width: 100, height: 100, marginBottom: 20 }} />
-          <Text style={{ fontSize: COLORS.extra_large_font_size, fontWeight: 'bold', marginBottom: 30, marginTop: -10, color: theme.Text_color }}>Welcome to StarSocial</Text>
-          <Text style={[styles.lable, { color: theme.Text_color }]}>Gmail</Text>
-          <TextInput
-            placeholder="Enter your email"
-            placeholderTextColor={theme.Text_color + '80'}
-            value={email}
-            style={[styles.input, { color: theme.Text_color, borderColor: theme.Text_color }]}
-            onChangeText={setEmail}
-          />
-
-          <Text style={[styles.lable, { color: theme.Text_color }]}>Password</Text>
-          <TextInput
-            placeholder="Enter your Password"
-            placeholderTextColor={theme.Text_color + '80'}
-            value={password}
-            secureTextEntry
-            style={[styles.input, { color: theme.Text_color, borderColor: theme.Text_color }]}
-            onChangeText={setPassword}
-          />
-          <View style={{ flexDirection: 'row', justifyContent: 'space-between', width: '100%' }}>
-            <TouchableOpacity style={{ alignSelf: 'flex-start', marginBottom: 15 }} onPress={() => router.push('/ForgotPassword')}>
-
-              <Text style={[styles.lable, { color: theme.Text_color }]}>I forgot password</Text >
-            </TouchableOpacity>
-            <TouchableOpacity style={{ alignSelf: 'flex-end', marginBottom: 15 }} onPress={() => router.push('/Register')}>
-              <Text style={[styles.lable, { color: theme.Text_color }]}>I don't have account</Text>
-
-            </TouchableOpacity>
-          </View>
-          <TouchableOpacity
-            style={{
-              backgroundColor: loading ? '#ccc' : '#007bff',
-              padding: 15,
-              borderRadius: 8,
-              alignItems: 'center',
-              marginBottom: 20,
-              width: '100%',
-            }}
-            onPress={handleLogin}
-            disabled={loading}
+        <KeyboardAvoidingView 
+          behavior={Platform.OS === "ios" ? "padding" : "height"}
+          style={{ flex: 1 }}
+        >
+          <ScrollView 
+            contentContainerStyle={styles.scrollContainer}
+            showsVerticalScrollIndicator={false}
           >
-            {loading ? (
-              <ActivityIndicator color="white" />
-            ) : (
-              <Text style={{ color: "white", fontSize: 18 }}>Login</Text>
-            )}
-          </TouchableOpacity>
-        </View>
+            <View style={styles.headerContainer}>
+              <Image source={require('../assets/logo.png')} style={styles.logo} resizeMode="contain" />
+              <Text style={[styles.welcomeText, { color: theme.text_primary }]}>Welcome Back!</Text>
+              <Text style={[styles.subText, { color: theme.text_secondary }]}>Sign in to continue</Text>
+            </View>
 
+            <View style={styles.formContainer}>
+              <View style={styles.inputGroup}>
+                <Text style={[styles.label, { color: theme.text_primary }]}>Email</Text>
+                <View style={[styles.inputContainer, { backgroundColor: theme.input_background, borderColor: theme.border_color }]}>
+                  <Ionicons name="mail-outline" size={20} color={theme.text_secondary} style={styles.inputIcon} />
+                  <TextInput
+                    placeholder="Enter your email"
+                    placeholderTextColor={theme.text_secondary}
+                    value={email}
+                    style={[styles.input, { color: theme.text_primary }]}
+                    onChangeText={setEmail}
+                    keyboardType="email-address"
+                    autoCapitalize="none"
+                  />
+                </View>
+              </View>
+
+              <View style={styles.inputGroup}>
+                <Text style={[styles.label, { color: theme.text_primary }]}>Password</Text>
+                <View style={[styles.inputContainer, { backgroundColor: theme.input_background, borderColor: theme.border_color }]}>
+                  <Ionicons name="lock-closed-outline" size={20} color={theme.text_secondary} style={styles.inputIcon} />
+                  <TextInput
+                    placeholder="Enter your password"
+                    placeholderTextColor={theme.text_secondary}
+                    value={password}
+                    secureTextEntry={!showPassword}
+                    style={[styles.input, { color: theme.text_primary }]}
+                    onChangeText={setPassword}
+                  />
+                  <TouchableOpacity onPress={() => setShowPassword(!showPassword)}>
+                    <Ionicons name={showPassword ? "eye-off-outline" : "eye-outline"} size={20} color={theme.text_secondary} />
+                  </TouchableOpacity>
+                </View>
+              </View>
+
+              <TouchableOpacity 
+                style={styles.forgotPassword} 
+                onPress={() => router.push('/ForgotPassword')}
+              >
+                <Text style={{ color: COLORS.primary, ...FONTS.body4 }}>Forgot Password?</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[styles.loginButton, { opacity: loading ? 0.7 : 1 }]}
+                onPress={handleLogin}
+                disabled={loading}
+              >
+                {loading ? (
+                  <ActivityIndicator color={COLORS.white} />
+                ) : (
+                  <Text style={styles.loginButtonText}>Login</Text>
+                )}
+              </TouchableOpacity>
+
+              <View style={styles.footer}>
+                <Text style={[styles.footerText, { color: theme.text_secondary }]}>Don't have an account? </Text>
+                <TouchableOpacity onPress={() => router.push('/Register')}>
+                  <Text style={[styles.footerLink, { color: COLORS.primary }]}>Sign Up</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </ScrollView>
+        </KeyboardAvoidingView>
       </SafeAreaView>
     </SafeAreaProvider>
-  </>
-
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
+  loadingContainer: {
     flex: 1,
-    alignItems: "center",
-    padding: 24,
-    justifyContent: "center",
-
+    justifyContent: 'center',
+    alignItems: 'center',
   },
-  test: {
-    flex: 1,
-    backgroundColor: 'red'
+  scrollContainer: {
+    flexGrow: 1,
+    padding: SIZES.padding,
+    justifyContent: 'center',
   },
-  main: {
-    flex: 1,
-    justifyContent: "center",
-    maxWidth: 960,
-    marginHorizontal: "auto",
+  headerContainer: {
+    alignItems: 'center',
+    marginBottom: 40,
   },
-  title: {
-    fontSize: 64,
-    fontWeight: "bold",
-  },
-  subtitle: {
-    fontSize: 36,
-
-  },
-  input: {
-    height: 40,
-    borderColor: 'gray',
-    borderWidth: 1,
-    borderRadius: 5,
+  logo: {
+    width: 100,
+    height: 100,
     marginBottom: 20,
-    paddingHorizontal: 10,
+  },
+  welcomeText: {
+    ...FONTS.h1,
+    marginBottom: 10,
+  },
+  subText: {
+    ...FONTS.body3,
+  },
+  formContainer: {
     width: '100%',
   },
-  lable: {
-    alignSelf: 'flex-start',
-    marginBottom: 5,
+  inputGroup: {
+    marginBottom: 20,
+  },
+  label: {
+    ...FONTS.h4,
+    marginBottom: 8,
+    fontWeight: '600',
+  },
+  inputContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderRadius: SIZES.radius,
+    paddingHorizontal: 15,
+    height: 50,
+  },
+  inputIcon: {
+    marginRight: 10,
+  },
+  input: {
+    flex: 1,
+    height: '100%',
+    ...FONTS.body3,
+  },
+  forgotPassword: {
+    alignSelf: 'flex-end',
+    marginBottom: 30,
+  },
+  loginButton: {
+    backgroundColor: COLORS.primary,
+    height: 55,
+    borderRadius: SIZES.radius,
+    justifyContent: 'center',
+    alignItems: 'center',
+    ...SHADOWS.medium,
+  },
+  loginButtonText: {
+    color: COLORS.white,
+    ...FONTS.h3,
     fontWeight: 'bold',
-    fontSize: COLORS.medium_font_size,
+  },
+  footer: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    marginTop: 30,
+  },
+  footerText: {
+    ...FONTS.body3,
+  },
+  footerLink: {
+    ...FONTS.h3,
+    fontWeight: 'bold',
+  },
+  slide: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 40,
+  },
+  slideImage: {
+    width: 300,
+    height: 300,
+    marginBottom: 40,
+  },
+  slideTitle: {
+    ...FONTS.h1,
+    textAlign: 'center',
+    marginBottom: 20,
+  },
+  slideSubtitle: {
+    ...FONTS.body3,
+    textAlign: 'center',
+  },
+  buttonText: {
+    fontSize: 16,
+    padding: 10,
   }
 });

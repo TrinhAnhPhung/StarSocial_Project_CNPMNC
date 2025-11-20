@@ -6,6 +6,8 @@ const AUTH_TOKEN_KEY = 'auth_token';
 class ApiService {
   constructor() {
     this.baseURL = API_BASE_URL;
+    console.log('📱 ApiService initialized');
+    console.log('🌐 Base URL:', this.baseURL);
   }
 
   // Lấy token từ AsyncStorage
@@ -35,6 +37,12 @@ class ApiService {
   async request(endpoint, options = {}) {
     const url = `${this.baseURL}${endpoint}`;
     
+    console.log('🔵 API Request:', {
+      url,
+      method: options.method || 'GET',
+      hasBody: !!options.body
+    });
+    
     // Lấy token nếu có
     const token = await this.getToken();
     
@@ -57,11 +65,15 @@ class ApiService {
     }
 
     try {
+      console.log('🟡 Fetching:', url);
       const response = await fetch(url, config);
+      console.log('🟢 Response status:', response.status);
+      
       const data = await response.json();
       
       // Xử lý lỗi từ backend
       if (!response.ok) {
+        console.error('🔴 Response error:', data);
         // Nếu token hết hạn hoặc không hợp lệ
         if (response.status === 401 || response.status === 403) {
           // Xóa token và yêu cầu đăng nhập lại
@@ -70,9 +82,15 @@ class ApiService {
         throw new Error(data.error || data.message || 'Request failed');
       }
       
+      console.log('✅ Request successful');
       return data;
     } catch (error) {
-      console.error('API Request Error:', error);
+      console.error('❌ API Request Error:', error);
+      console.error('Error details:', {
+        message: error.message,
+        url: url,
+        baseURL: this.baseURL
+      });
       throw error;
     }
   }
@@ -133,6 +151,40 @@ class ApiService {
     // Xóa token khi logout
     await this.setToken(null);
     return { success: true };
+  }
+
+  async getCurrentUser() {
+    try {
+      const response = await this.request('/auth/me', {
+        method: 'GET',
+      });
+      return {
+        success: true,
+        data: response.user || response,
+      };
+    } catch (error) {
+      return {
+        success: false,
+        message: error.message || 'Không thể tải thông tin người dùng',
+      };
+    }
+  }
+
+  async getPost(postId) {
+    try {
+      const response = await this.request(`/posts/${postId}`, {
+        method: 'GET',
+      });
+      return {
+        success: true,
+        data: response.post || response,
+      };
+    } catch (error) {
+      return {
+        success: false,
+        message: error.message || 'Không thể tải bài viết',
+      };
+    }
   }
 
   async healthCheck() {
@@ -479,11 +531,23 @@ class ApiService {
   }
 
   // Profile APIs
-  async updateProfile({ first_name, last_name, email }) {
+  async updateProfile({ first_name, last_name, email, username, bio, phone, date_of_birth, gender, location }) {
     try {
+      // Prepare body with all fields, removing empty/undefined values
+      const body = {};
+      if (first_name) body.first_name = first_name;
+      if (last_name) body.last_name = last_name;
+      if (email) body.email = email;
+      if (username) body.username = username;
+      if (bio !== undefined) body.bio = bio;
+      if (phone) body.phone = phone;
+      if (date_of_birth) body.date_of_birth = date_of_birth;
+      if (gender) body.gender = gender;
+      if (location) body.location = location;
+
       const response = await this.request('/profile/me', {
         method: 'PUT',
-        body: { first_name, last_name, email },
+        body: body,
       });
       return {
         success: true,
@@ -555,6 +619,23 @@ class ApiService {
         success: false,
         message: error.message || 'Không thể tải cuộc trò chuyện',
         data: [],
+      };
+    }
+  }
+
+  async getUnreadChatCount() {
+    try {
+      const response = await this.request('/conversations/unread-count', {
+        method: 'GET',
+      });
+      return {
+        success: true,
+        count: response.count || 0,
+      };
+    } catch (error) {
+      return {
+        success: false,
+        count: 0,
       };
     }
   }
