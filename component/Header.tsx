@@ -67,16 +67,13 @@ export default function Header({ onNotificationPress, onChatPress }: HeaderProps
       styles.container, 
       { 
         backgroundColor: theme.background_color,
-        paddingTop: insets.top,
-        height: 60 + insets.top
+        paddingTop: 0, // Đã được xử lý bởi SafeAreaView ở trang cha
       }
     ]}>
       <View style={styles.content}>
-        <Image
-          source={require('../assets/logo.png')}
-          style={styles.logo}
-          resizeMode="contain"
-        />
+        <TouchableOpacity onPress={() => handlePress('/Home')}>
+          <Text style={[styles.logoText, { color: theme.text_primary }]}>StarSocial</Text>
+        </TouchableOpacity>
 
         <View style={styles.rightSection}>
           <TouchableOpacity
@@ -114,48 +111,49 @@ export default function Header({ onNotificationPress, onChatPress }: HeaderProps
 
 const styles = StyleSheet.create({
   container: {
-    justifyContent: 'center',
-    paddingBottom: 5,
-    paddingHorizontal: SIZES.padding,
+    paddingHorizontal: 16,
+    paddingBottom: 5, // Giảm padding bottom để header gọn hơn
     zIndex: 100,
   },
   content: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    height: 50,
+    height: 44, // Giảm chiều cao content
   },
-  logo: {
-    width: 160,
-    height: 50,
+  logoText: {
+    fontSize: 28,
+    fontWeight: 'bold',
+    letterSpacing: -0.5,
   },
   rightSection: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    gap: 15,
   },
   iconButton: {
-    width: 44,
-    height: 44,
+    width: 40,
+    height: 40,
     justifyContent: 'center',
     alignItems: 'center',
   },
   badge: {
     position: 'absolute',
-    top: -2,
-    right: -2,
+    top: 0,
+    right: 0,
     minWidth: 18,
     height: 18,
     borderRadius: 9,
     backgroundColor: COLORS.danger,
     justifyContent: 'center',
     alignItems: 'center',
-    borderWidth: 2,
+    borderWidth: 1.5,
     borderColor: COLORS.white,
   },
   badgeText: {
     color: COLORS.white,
     fontSize: 10,
     fontWeight: 'bold',
+    paddingHorizontal: 4,
   },
 });

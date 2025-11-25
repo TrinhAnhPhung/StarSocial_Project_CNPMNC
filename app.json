@@ -26,12 +26,16 @@
     "web": {
       "favicon": "./assets/favicon.png"
     },
+    "updates": {
+      "enabled": false,
+      "fallbackToCacheTimeout": 0
+    },
+    "runtimeVersion": {
+      "policy": "sdkVersion"
+    },
     "plugins": [
       "expo-router"
     ],
-    "updates": {
-      "enabled": false
-    },
     "extra": {
       "eas": {
         "projectId": "your-project-id"

@@ -93,98 +93,116 @@ export default function Register() {
             contentContainerStyle={styles.scrollContainer}
             showsVerticalScrollIndicator={false}
           >
-            <View style={styles.headerContainer}>
-              <Image source={require('../assets/logo.png')} style={styles.logo} resizeMode="contain" />
-              <Text style={[styles.title, { color: theme.text_primary }]}>Create Account</Text>
-              <Text style={[styles.subtitle, { color: theme.text_secondary }]}>Join our community today</Text>
+            {/* Logo */}
+            <View style={styles.logoContainer}>
+              <Image 
+                source={require('../assets/logo.png')} 
+                style={{ width: 80, height: 80, tintColor: COLORS.primary }} 
+                resizeMode="contain" 
+              />
             </View>
 
-            <View style={styles.formContainer}>
-              <View style={styles.inputGroup}>
-                <Text style={[styles.label, { color: theme.text_primary }]}>Full Name</Text>
-                <View style={[styles.inputContainer, { backgroundColor: theme.input_background, borderColor: theme.border_color }]}>
-                  <Ionicons name="person-outline" size={20} color={theme.text_secondary} style={styles.inputIcon} />
-                  <TextInput
-                    placeholder="Enter your full name"
-                    placeholderTextColor={theme.text_secondary}
-                    value={fullName}
-                    style={[styles.input, { color: theme.text_primary }]}
-                    onChangeText={setFullName}
+            {/* Title */}
+            <Text style={[styles.title, { color: theme.text_primary }]}>Tạo tài khoản</Text>
+
+            {/* Full Name Input */}
+            <View style={styles.inputContainer}>
+              <Text style={[styles.label, { color: theme.text_primary }]}>Họ tên đầy đủ</Text>
+              <TextInput
+                style={[styles.input, { 
+                  color: theme.text_primary, 
+                  borderColor: theme.border_color,
+                  backgroundColor: theme.card_background 
+                }]}
+                placeholder="VD: Trịnh Anh Cường"
+                placeholderTextColor={theme.text_secondary}
+                value={fullName}
+                onChangeText={setFullName}
+              />
+            </View>
+
+            {/* Email Input */}
+            <View style={styles.inputContainer}>
+              <Text style={[styles.label, { color: theme.text_primary }]}>Email</Text>
+              <TextInput
+                style={[styles.input, { 
+                  color: theme.text_primary, 
+                  borderColor: theme.border_color,
+                  backgroundColor: theme.card_background 
+                }]}
+                placeholder="Nhập Email"
+                placeholderTextColor={theme.text_secondary}
+                value={email}
+                onChangeText={setEmail}
+                keyboardType="email-address"
+                autoCapitalize="none"
+              />
+            </View>
+
+            {/* Password Input */}
+            <View style={styles.inputContainer}>
+              <Text style={[styles.label, { color: theme.text_primary }]}>Mật khẩu</Text>
+              <TextInput
+                style={[styles.input, { 
+                  color: theme.text_primary, 
+                  borderColor: theme.border_color,
+                  backgroundColor: theme.card_background 
+                }]}
+                placeholder="Nhập mật khẩu"
+                placeholderTextColor={theme.text_secondary}
+                value={password}
+                onChangeText={setPassword}
+                secureTextEntry={!showPassword}
+              />
+            </View>
+
+            {/* Confirm Password Input */}
+            <View style={styles.inputContainer}>
+              <Text style={[styles.label, { color: theme.text_primary }]}>Xác nhận mật khẩu</Text>
+              <View style={[styles.passwordContainer, { 
+                  borderColor: theme.border_color,
+                  backgroundColor: theme.card_background 
+                }]}>
+                <TextInput
+                  style={[styles.passwordInput, { color: theme.text_primary }]}
+                  placeholder="Nhập mật khẩu"
+                  placeholderTextColor={theme.text_secondary}
+                  value={confirmPassword}
+                  onChangeText={setConfirmPassword}
+                  secureTextEntry={!showConfirmPassword}
+                />
+                <TouchableOpacity 
+                  onPress={() => setShowConfirmPassword(!showConfirmPassword)}
+                  style={styles.eyeIcon}
+                >
+                  <Ionicons 
+                    name={showConfirmPassword ? "eye-off-outline" : "eye-outline"} 
+                    size={20} 
+                    color={theme.text_secondary} 
                   />
-                </View>
-              </View>
-
-              <View style={styles.inputGroup}>
-                <Text style={[styles.label, { color: theme.text_primary }]}>Email</Text>
-                <View style={[styles.inputContainer, { backgroundColor: theme.input_background, borderColor: theme.border_color }]}>
-                  <Ionicons name="mail-outline" size={20} color={theme.text_secondary} style={styles.inputIcon} />
-                  <TextInput
-                    placeholder="Enter your email"
-                    placeholderTextColor={theme.text_secondary}
-                    value={email}
-                    style={[styles.input, { color: theme.text_primary }]}
-                    onChangeText={setEmail}
-                    keyboardType="email-address"
-                    autoCapitalize="none"
-                  />
-                </View>
-              </View>
-
-              <View style={styles.inputGroup}>
-                <Text style={[styles.label, { color: theme.text_primary }]}>Password</Text>
-                <View style={[styles.inputContainer, { backgroundColor: theme.input_background, borderColor: theme.border_color }]}>
-                  <Ionicons name="lock-closed-outline" size={20} color={theme.text_secondary} style={styles.inputIcon} />
-                  <TextInput
-                    placeholder="Create a password"
-                    placeholderTextColor={theme.text_secondary}
-                    value={password}
-                    secureTextEntry={!showPassword}
-                    style={[styles.input, { color: theme.text_primary }]}
-                    onChangeText={setPassword}
-                  />
-                  <TouchableOpacity onPress={() => setShowPassword(!showPassword)}>
-                    <Ionicons name={showPassword ? "eye-off-outline" : "eye-outline"} size={20} color={theme.text_secondary} />
-                  </TouchableOpacity>
-                </View>
-              </View>
-
-              <View style={styles.inputGroup}>
-                <Text style={[styles.label, { color: theme.text_primary }]}>Confirm Password</Text>
-                <View style={[styles.inputContainer, { backgroundColor: theme.input_background, borderColor: theme.border_color }]}>
-                  <Ionicons name="lock-closed-outline" size={20} color={theme.text_secondary} style={styles.inputIcon} />
-                  <TextInput
-                    placeholder="Confirm your password"
-                    placeholderTextColor={theme.text_secondary}
-                    value={confirmPassword}
-                    secureTextEntry={!showConfirmPassword}
-                    style={[styles.input, { color: theme.text_primary }]}
-                    onChangeText={setConfirmPassword}
-                  />
-                  <TouchableOpacity onPress={() => setShowConfirmPassword(!showConfirmPassword)}>
-                    <Ionicons name={showConfirmPassword ? "eye-off-outline" : "eye-outline"} size={20} color={theme.text_secondary} />
-                  </TouchableOpacity>
-                </View>
-              </View>
-
-              <TouchableOpacity
-                style={[styles.registerButton, { opacity: loading ? 0.7 : 1 }]}
-                onPress={handleRegister}
-                disabled={loading}
-              >
-                {loading ? (
-                  <ActivityIndicator color={COLORS.white} />
-                ) : (
-                  <Text style={styles.registerButtonText}>Sign Up</Text>
-                )}
-              </TouchableOpacity>
-
-              <View style={styles.footer}>
-                <Text style={[styles.footerText, { color: theme.text_secondary }]}>Already have an account? </Text>
-                <TouchableOpacity onPress={() => router.back()}>
-                  <Text style={[styles.footerLink, { color: COLORS.primary }]}>Login</Text>
                 </TouchableOpacity>
               </View>
             </View>
+
+            {/* Register Button */}
+            <TouchableOpacity 
+              style={[styles.registerButton, loading && { opacity: 0.7 }]}
+              onPress={handleRegister}
+              disabled={loading}
+            >
+              <Text style={styles.registerButtonText}>
+                {loading ? 'Đang xử lý...' : 'Đăng ký'}
+              </Text>
+            </TouchableOpacity>
+
+            {/* Footer Link */}
+            <View style={styles.footer}>
+              <Text style={[styles.footerText, { color: theme.text_secondary }]}>Đã có tài khoản? </Text>
+              <TouchableOpacity onPress={() => router.back()}>
+                <Text style={styles.loginLink}>Đăng nhập</Text>
+              </TouchableOpacity>
+            </View>
+
           </ScrollView>
         </KeyboardAvoidingView>
       </SafeAreaView>
@@ -195,77 +213,79 @@ export default function Register() {
 const styles = StyleSheet.create({
   scrollContainer: {
     flexGrow: 1,
-    padding: SIZES.padding,
-    justifyContent: 'center',
+    padding: 20,
+    justifyContent: 'flex-start',
+    paddingTop: 40,
   },
-  headerContainer: {
+  logoContainer: {
     alignItems: 'center',
-    marginBottom: 30,
-  },
-  logo: {
-    width: 80,
-    height: 80,
-    marginBottom: 15,
+    marginBottom: 20,
   },
   title: {
-    ...FONTS.h1,
-    marginBottom: 5,
+    fontSize: 24,
+    fontWeight: 'bold',
+    textAlign: 'center',
+    marginBottom: 30,
   },
-  subtitle: {
-    ...FONTS.body3,
-  },
-  formContainer: {
-    width: '100%',
-  },
-  inputGroup: {
+  inputContainer: {
     marginBottom: 20,
   },
   label: {
-    ...FONTS.h4,
-    marginBottom: 8,
+    fontSize: 14,
     fontWeight: '600',
-  },
-  inputContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    borderWidth: 1,
-    borderRadius: SIZES.radius,
-    paddingHorizontal: 15,
-    height: 50,
-  },
-  inputIcon: {
-    marginRight: 10,
+    marginBottom: 8,
   },
   input: {
+    width: '100%',
+    height: 50,
+    borderWidth: 1,
+    borderRadius: 8,
+    paddingHorizontal: 15,
+    fontSize: 16,
+  },
+  passwordContainer: {
+    width: '100%',
+    height: 50,
+    borderWidth: 1,
+    borderRadius: 8,
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 15,
+  },
+  passwordInput: {
     flex: 1,
     height: '100%',
-    ...FONTS.body3,
+    fontSize: 16,
+  },
+  eyeIcon: {
+    padding: 5,
   },
   registerButton: {
-    backgroundColor: COLORS.primary,
-    height: 55,
-    borderRadius: SIZES.radius,
+    width: '100%',
+    height: 50,
+    backgroundColor: '#3B82F6',
+    borderRadius: 25,
     justifyContent: 'center',
     alignItems: 'center',
     marginTop: 10,
-    ...SHADOWS.medium,
+    marginBottom: 20,
   },
   registerButtonText: {
-    color: COLORS.white,
-    ...FONTS.h3,
+    color: '#FFFFFF',
+    fontSize: 16,
     fontWeight: 'bold',
   },
   footer: {
     flexDirection: 'row',
     justifyContent: 'center',
-    marginTop: 30,
-    marginBottom: 20,
+    alignItems: 'center',
   },
   footerText: {
-    ...FONTS.body3,
+    fontSize: 14,
   },
-  footerLink: {
-    ...FONTS.h3,
+  loginLink: {
+    color: '#3B82F6',
+    fontSize: 14,
     fontWeight: 'bold',
   },
 });

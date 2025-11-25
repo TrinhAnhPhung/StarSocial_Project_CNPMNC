@@ -445,6 +445,11 @@ class ApiService {
 
   async getUnreadCount() {
     try {
+      const token = await this.getToken();
+      if (!token) {
+        return { success: false, count: 0 };
+      }
+
       const response = await this.request('/notifications/unread-count', {
         method: 'GET',
       });
@@ -625,6 +630,11 @@ class ApiService {
 
   async getUnreadChatCount() {
     try {
+      const token = await this.getToken();
+      if (!token) {
+        return { success: false, count: 0 };
+      }
+
       const response = await this.request('/conversations/unread-count', {
         method: 'GET',
       });

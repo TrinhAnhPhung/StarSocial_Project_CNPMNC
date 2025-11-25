@@ -38,6 +38,8 @@ export default function Page() {
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [error, setError] = useState('');
+  const [language, setLanguage] = useState('vi');
   
   const colorScheme = useColorScheme();
   const theme = COLORS[colorScheme ?? 'dark'] ?? COLORS.dark;
@@ -60,19 +62,20 @@ export default function Page() {
   }
 
   const handleLogin = async () => {
+    setError('');
     if (!email.trim()) {
-      showWarning('Vui lòng nhập email');
+      setError('Vui lòng nhập email');
       return;
     }
 
     if (!password.trim()) {
-      showWarning('Vui lòng nhập mật khẩu');
+      setError('Vui lòng nhập mật khẩu');
       return;
     }
 
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email)) {
-      showWarning('Email không hợp lệ');
+      setError('Email không hợp lệ');
       return;
     }
 
@@ -85,7 +88,7 @@ export default function Page() {
           router.replace('/Home');
         });
       } else {
-        showError(result.message || 'Email hoặc mật khẩu không chính xác');
+        setError(result.message || 'Incorrect password. Please check your password.');
       }
     } catch (error) {
       showError('Không thể kết nối đến server. Vui lòng kiểm tra kết nối mạng.');
@@ -133,7 +136,6 @@ export default function Page() {
   return (
     <SafeAreaProvider>
       <SafeAreaView style={{ flex: 1, backgroundColor: theme.background_color }}>
-        <ThemeBar />
         <KeyboardAvoidingView 
           behavior={Platform.OS === "ios" ? "padding" : "height"}
           style={{ flex: 1 }}
@@ -142,52 +144,73 @@ export default function Page() {
             contentContainerStyle={styles.scrollContainer}
             showsVerticalScrollIndicator={false}
           >
-            <View style={styles.headerContainer}>
+            <View style={styles.header}>
+                <Text style={[styles.headerTitle, { color: theme.text_secondary }]}>
+                  {language === 'vi' ? 'Đăng nhập' : 'Login'}
+                </Text>
+                <TouchableOpacity 
+                  onPress={() => setLanguage(language === 'vi' ? 'en' : 'vi')}
+                  style={styles.langButton}
+                >
+                  <Text style={[styles.langText, { color: COLORS.primary }]}>
+                    {language === 'vi' ? 'EN' : 'VN'}
+                  </Text>
+                </TouchableOpacity>
+            </View>
+
+            <View style={styles.logoContainer}>
               <Image source={require('../assets/logo.png')} style={styles.logo} resizeMode="contain" />
-              <Text style={[styles.welcomeText, { color: theme.text_primary }]}>Welcome Back!</Text>
-              <Text style={[styles.subText, { color: theme.text_secondary }]}>Sign in to continue</Text>
+              <Text style={[styles.appName, { color: theme.text_primary }]}>StarSocial</Text>
             </View>
 
             <View style={styles.formContainer}>
               <View style={styles.inputGroup}>
-                <Text style={[styles.label, { color: theme.text_primary }]}>Email</Text>
-                <View style={[styles.inputContainer, { backgroundColor: theme.input_background, borderColor: theme.border_color }]}>
-                  <Ionicons name="mail-outline" size={20} color={theme.text_secondary} style={styles.inputIcon} />
-                  <TextInput
-                    placeholder="Enter your email"
+                <Text style={[styles.label, { color: theme.text_primary }]}>
+                  {language === 'vi' ? 'Email' : 'Email'}
+                </Text>
+                <TextInput
+                    placeholder={language === 'vi' ? "Nhập email" : "Enter email"}
                     placeholderTextColor={theme.text_secondary}
                     value={email}
-                    style={[styles.input, { color: theme.text_primary }]}
-                    onChangeText={setEmail}
+                    style={[styles.input, { backgroundColor: theme.background_color, borderColor: theme.border_color, color: theme.text_primary }]}
+                    onChangeText={(text) => { setEmail(text); setError(''); }}
                     keyboardType="email-address"
                     autoCapitalize="none"
                   />
-                </View>
               </View>
 
               <View style={styles.inputGroup}>
-                <Text style={[styles.label, { color: theme.text_primary }]}>Password</Text>
-                <View style={[styles.inputContainer, { backgroundColor: theme.input_background, borderColor: theme.border_color }]}>
-                  <Ionicons name="lock-closed-outline" size={20} color={theme.text_secondary} style={styles.inputIcon} />
+                <Text style={[styles.label, { color: theme.text_primary }]}>
+                  {language === 'vi' ? 'Mật khẩu' : 'Password'}
+                </Text>
+                <View style={[styles.passwordContainer, { backgroundColor: theme.background_color, borderColor: error ? COLORS.danger : theme.border_color }]}>
                   <TextInput
-                    placeholder="Enter your password"
+                    placeholder={language === 'vi' ? "Nhập mật khẩu" : "Enter password"}
                     placeholderTextColor={theme.text_secondary}
                     value={password}
                     secureTextEntry={!showPassword}
-                    style={[styles.input, { color: theme.text_primary }]}
-                    onChangeText={setPassword}
+                    style={[styles.passwordInput, { color: theme.text_primary }]}
+                    onChangeText={(text) => { setPassword(text); setError(''); }}
                   />
-                  <TouchableOpacity onPress={() => setShowPassword(!showPassword)}>
+                  <TouchableOpacity onPress={() => setShowPassword(!showPassword)} style={styles.eyeIcon}>
                     <Ionicons name={showPassword ? "eye-off-outline" : "eye-outline"} size={20} color={theme.text_secondary} />
                   </TouchableOpacity>
                 </View>
+                {error ? (
+                    <View style={styles.errorContainer}>
+                        <Ionicons name="alert-circle-outline" size={16} color={COLORS.danger} />
+                        <Text style={styles.errorText}>{error}</Text>
+                    </View>
+                ) : null}
               </View>
 
               <TouchableOpacity 
                 style={styles.forgotPassword} 
                 onPress={() => router.push('/ForgotPassword')}
               >
-                <Text style={{ color: COLORS.primary, ...FONTS.body4 }}>Forgot Password?</Text>
+                <Text style={{ color: COLORS.primary, fontWeight: '600' }}>
+                  {language === 'vi' ? 'Quên mật khẩu?' : 'Forgot Password?'}
+                </Text>
               </TouchableOpacity>
 
               <TouchableOpacity
@@ -198,17 +221,43 @@ export default function Page() {
                 {loading ? (
                   <ActivityIndicator color={COLORS.white} />
                 ) : (
-                  <Text style={styles.loginButtonText}>Login</Text>
+                  <Text style={styles.loginButtonText}>
+                    {language === 'vi' ? 'Đăng nhập' : 'Login'}
+                  </Text>
                 )}
               </TouchableOpacity>
 
               <View style={styles.footer}>
-                <Text style={[styles.footerText, { color: theme.text_secondary }]}>Don't have an account? </Text>
+                <Text style={[styles.footerText, { color: theme.text_secondary }]}>
+                  {language === 'vi' ? 'Chưa có tài khoản? ' : "Don't have an account? "}
+                </Text>
                 <TouchableOpacity onPress={() => router.push('/Register')}>
-                  <Text style={[styles.footerLink, { color: COLORS.primary }]}>Sign Up</Text>
+                  <Text style={[styles.footerLink, { color: COLORS.primary }]}>
+                    {language === 'vi' ? 'Đăng ký' : 'Sign Up'}
+                  </Text>
                 </TouchableOpacity>
               </View>
             </View>
+
+            <View style={styles.footer}>
+                <View style={styles.footerLinks}>
+                    <Text style={styles.footerLinkText}>{language === 'vi' ? 'Giới thiệu' : 'About'}</Text>
+                    <Text style={styles.footerLinkText}>{language === 'vi' ? 'Việc làm' : 'Jobs'}</Text>
+                    <Text style={styles.footerLinkText}>{language === 'vi' ? 'Trợ giúp' : 'Help'}</Text>
+                    <Text style={styles.footerLinkText}>{language === 'vi' ? 'Quyền riêng tư' : 'Privacy'}</Text>
+                </View>
+                <View style={styles.footerLinks}>
+                    <Text style={styles.footerLinkText}>{language === 'vi' ? 'Điều khoản' : 'Terms'}</Text>
+                    <Text style={styles.footerLinkText}>{language === 'vi' ? 'Vị trí' : 'Locations'}</Text>
+                    <Text style={styles.footerLinkText}>API</Text>
+                </View>
+                
+                <View style={styles.copyrightContainer}>
+                    
+                    <Text style={styles.copyrightText}>©2025 Starsocial from StarTeam</Text>
+                </View>
+            </View>
+
           </ScrollView>
         </KeyboardAvoidingView>
       </SafeAreaView>
@@ -224,80 +273,148 @@ const styles = StyleSheet.create({
   },
   scrollContainer: {
     flexGrow: 1,
-    padding: SIZES.padding,
-    justifyContent: 'center',
+    padding: 20,
   },
-  headerContainer: {
+  header: {
+      marginBottom: 20,
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+  },
+  headerTitle: {
+      fontSize: 18,
+      fontWeight: '500',
+      color: '#757575',
+  },
+  langButton: {
+    padding: 8,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: COLORS.primary,
+  },
+  langText: {
+    fontWeight: 'bold',
+    fontSize: 12,
+  },
+  logoContainer: {
     alignItems: 'center',
     marginBottom: 40,
   },
   logo: {
-    width: 100,
-    height: 100,
-    marginBottom: 20,
-  },
-  welcomeText: {
-    ...FONTS.h1,
+    width: 80,
+    height: 80,
     marginBottom: 10,
+    tintColor: COLORS.primary,
   },
-  subText: {
-    ...FONTS.body3,
+  appName: {
+      fontSize: 24,
+      fontWeight: 'bold',
+      color: '#000',
   },
   formContainer: {
     width: '100%',
+    marginBottom: 40,
   },
   inputGroup: {
-    marginBottom: 20,
+    marginBottom: 15,
   },
   label: {
-    ...FONTS.h4,
+    fontSize: 14,
+    fontWeight: '500',
     marginBottom: 8,
-    fontWeight: '600',
   },
-  inputContainer: {
+  input: {
+    borderWidth: 1,
+    borderRadius: 8,
+    paddingHorizontal: 15,
+    height: 50,
+    fontSize: 16,
+  },
+  passwordContainer: {
     flexDirection: 'row',
     alignItems: 'center',
     borderWidth: 1,
-    borderRadius: SIZES.radius,
+    borderRadius: 8,
     paddingHorizontal: 15,
     height: 50,
   },
-  inputIcon: {
-    marginRight: 10,
-  },
-  input: {
+  passwordInput: {
     flex: 1,
     height: '100%',
-    ...FONTS.body3,
+    fontSize: 16,
+  },
+  eyeIcon: {
+      padding: 5,
+  },
+  inputError: {
+      borderColor: COLORS.danger,
+  },
+  errorContainer: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      marginTop: 5,
+  },
+  errorText: {
+      color: COLORS.danger,
+      fontSize: 12,
+      marginLeft: 5,
   },
   forgotPassword: {
     alignSelf: 'flex-end',
-    marginBottom: 30,
+    marginBottom: 20,
   },
   loginButton: {
     backgroundColor: COLORS.primary,
-    height: 55,
-    borderRadius: SIZES.radius,
+    height: 50,
+    borderRadius: 25,
     justifyContent: 'center',
     alignItems: 'center',
-    ...SHADOWS.medium,
+    marginBottom: 20,
   },
   loginButtonText: {
     color: COLORS.white,
-    ...FONTS.h3,
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
+  registerContainer: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+  },
+  footerText: {
+    fontSize: 14,
+  },
+  registerLink: {
+    fontSize: 14,
     fontWeight: 'bold',
   },
   footer: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    marginTop: 30,
+      marginTop: 'auto',
+      alignItems: 'center',
+      paddingVertical: 20,
   },
-  footerText: {
-    ...FONTS.body3,
+  footerLinks: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      justifyContent: 'center',
+      gap: 15,
+      marginBottom: 10,
   },
-  footerLink: {
-    ...FONTS.h3,
-    fontWeight: 'bold',
+  footerLinkText: {
+      fontSize: 12,
+      color: '#757575',
+  },
+  copyrightContainer: {
+      alignItems: 'center',
+      marginTop: 10,
+  },
+  languageText: {
+      fontSize: 12,
+      color: '#757575',
+      marginBottom: 5,
+  },
+  copyrightText: {
+      fontSize: 12,
+      color: '#757575',
   },
   slide: {
     flex: 1,

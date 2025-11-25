@@ -13,7 +13,7 @@ import PostCard from './PostCard';
 import CommentModal from './CommentModal';
 import apiService from '../services/api';
 import authService from '../services/authService';
-import AppLoader from './AppLoader';
+import SkeletonPost from './SkeletonPost';
 import { useRouter } from 'expo-router';
 import { showError } from '../utils/notification';
 
@@ -195,16 +195,12 @@ export default function Feed() {
     // TODO: Implement report functionality
   };
 
-  if (loading) {
+  if (loading && !refreshing) {
     return (
-      <AppLoader
-        message="Đang tải bài đăng..."
-        containerStyle={{
-          ...styles.loadingContainer,
-          backgroundColor: theme.background_color,
-        }}
-        logoSize={64}
-      />
+      <View style={{ flex: 1, backgroundColor: theme.background_color }}>
+        <SkeletonPost />
+        <SkeletonPost />
+      </View>
     );
   }
 
@@ -291,10 +287,6 @@ export default function Feed() {
 const styles = StyleSheet.create({
   listContent: {
     paddingBottom: 20,
-  },
-  loadingContainer: {
-    flex: 1,
-    paddingVertical: 40,
   },
   emptyContainer: {
     flex: 1,

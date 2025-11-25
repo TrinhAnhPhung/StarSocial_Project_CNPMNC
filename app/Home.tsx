@@ -89,35 +89,6 @@ export default function Home() {
         />
         <View style={styles.feedContainer}>
           <Feed />
-          <TouchableOpacity
-            activeOpacity={0.85}
-            onPress={handleFabPress}
-            style={styles.fabContainer}
-          >
-            <Animated.View
-              style={[
-                styles.fab,
-                {
-                  transform: [
-                    { scale: Animated.multiply(fabScale, fabPulse) },
-                  ],
-                  backgroundColor: colorScheme === 'dark' ? '#5A7DFE' : '#6C63FF',
-                  shadowColor: colorScheme === 'dark' ? '#000000' : '#6C63FF',
-                },
-              ]}
-            >
-              <LinearGradient
-                colors={colorScheme === 'dark' 
-                  ? ['#5A7DFE', '#4A6DFE'] 
-                  : ['#6C63FF', '#5B52FF']}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 1 }}
-                style={styles.fabGradient}
-              >
-                <MaterialIcons name="add" size={28} color="#ffffff" />
-              </LinearGradient>
-            </Animated.View>
-          </TouchableOpacity>
         </View>
         <View>
           <BottomNavigation userAvatar={userData?.avatar || userData?.profile_picture} />
