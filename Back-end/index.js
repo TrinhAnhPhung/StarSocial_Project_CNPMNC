@@ -62,8 +62,8 @@ app.use(
         origin.startsWith('exp://') || 
         origin.startsWith('http://localhost') ||
         origin.startsWith('http://192.168.') ||
-        origin.startsWith('http://10.0.2.2') || // Android emulator
-        origin.startsWith('http://10.0.0.2')    // iOS simulator trên một số cấu hình
+        origin.startsWith('http://10.') || // Cho phép các dải IP 10.x.x.x (bao gồm 10.0.2.2 và IP LAN 10.21...)
+        origin.startsWith('http://172.')   // Cho phép dải IP 172.x.x.x
       ) {
         return cb(null, true);
       }
