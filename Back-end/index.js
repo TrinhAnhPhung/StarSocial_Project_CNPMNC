@@ -116,8 +116,9 @@ const server = http.createServer(app); // Tạo server từ app Express
 
 const io = new Server(server, {
     cors: {
-        origin: "http://localhost:5173", // 
-        methods: ["GET", "POST"]
+        origin: ALLOWED_ORIGINS,
+        methods: ["GET", "POST"],
+        credentials: true
     }
 });
 
