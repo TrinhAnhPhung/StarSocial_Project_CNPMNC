@@ -23,7 +23,12 @@ app.use(express.json()); // ✅ thay bodyParser.json()
 app.use(express.urlencoded({ extended: true })); // nếu cần parse form urlencoded
 
 /* ------------ CORS ------------ */
-const ALLOWED_ORIGINS = ['http://localhost:5173', 'http://localhost:19006', 'exp://localhost:19000'];
+const ALLOWED_ORIGINS = [
+  'http://localhost:5173', 
+  'http://localhost:19006', 
+  'exp://localhost:19000',
+  'https://dazzling-kringle-a8feb0.netlify.app'
+];
 app.use(
   cors({
     origin(origin, cb) {
