@@ -27,7 +27,8 @@ const ALLOWED_ORIGINS = [
   'http://localhost:5173', 
   'http://localhost:19006', 
   'exp://localhost:19000',
-  'https://dazzling-kringle-a8feb0.netlify.app'
+  'https://dazzling-kringle-a8feb0.netlify.app',
+  'https://starsocialhuflit.netlify.app'
 ];
 app.use(
   cors({
