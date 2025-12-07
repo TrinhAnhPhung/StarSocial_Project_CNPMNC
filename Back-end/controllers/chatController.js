@@ -1,7 +1,5 @@
 // controllers/chatController.js
-import { createRequire } from 'module';
-const require = createRequire(import.meta.url);
-const {sql,connection} = require('../src/Config/SqlConnection.js');
+import { sql, connection } from '../src/Config/SqlConnection.js';
     
     /**
  * 1. Lấy tất cả cuộc trò chuyện (cho ChatSidebar)

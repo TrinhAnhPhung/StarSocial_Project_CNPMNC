@@ -77,8 +77,8 @@ const MainLayout = () => {
             {/* Truyền user xuống cho mọi component con (ChatModal, Feed...) */}
             <Outlet context={{ user }} />
           </div>
-          {/* Right sidebar - ẩn trên People page */}
-          {!location.pathname.startsWith('/people') && (
+          {/* Right sidebar - ẩn trên People page và Messages page */}
+          {!location.pathname.startsWith('/people') && !location.pathname.startsWith('/messages') && (
             <div className="hidden lg:block sticky top-0 w-1/4 bg-white-800 p-4 text-white h-screen overflow-auto">
               <TopCreators />
             </div>
@@ -95,8 +95,8 @@ const MainLayout = () => {
             {/* Truyền user xuống cho mọi component con (ChatModal, Feed...) */}
             <Outlet context={{ user }} />
           </div>
-          {/* Right sidebar - ẩn trên People page */}
-          {!location.pathname.startsWith('/people') && (
+          {/* Right sidebar - ẩn trên People page và Messages page */}
+          {!location.pathname.startsWith('/people') && !location.pathname.startsWith('/messages') && (
             <div className="hidden lg:block sticky top-0 w-1/4 bg-white-800 p-4 text-white h-screen overflow-auto">
               <TopCreators />
             </div>

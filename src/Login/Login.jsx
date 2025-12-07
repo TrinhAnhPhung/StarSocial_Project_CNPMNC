@@ -2,7 +2,6 @@ import React, { useState, useEffect } from "react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
 import translations from "./Language/LoginLanguage.jsx";
-import ReCAPTCHA from "react-google-recaptcha";
 const Login = () => {
   const [formData, setFormData] = useState({ email: "", password: "" });
   const [loading, setLoading] = useState(false);
@@ -11,9 +10,7 @@ const Login = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [language, setLanguage] = useState("vi");
   const navigate = useNavigate();
-  const siteKey = import.meta.env.VITE_Recapcha_site_key;
   const t = translations[language];
-  const [isVerrified, setIsVerrified] = useState(false);
   const backendLink = import.meta.env.VITE_Link_backend || "http://localhost:5000";
   
   // Debug: Log backend link khi component mount
@@ -30,12 +27,6 @@ const Login = () => {
     }
     setError("");
   };
-
-  const EnableLogin = (token) => {
-    if (token) {
-      setIsVerrified(true);
-    }
-  }
 
   const validateForm = () => {
     const errors = {};
@@ -194,15 +185,11 @@ const Login = () => {
               </div>
 
               {error && <p className="text-red-500 text-sm text-center mt-1">{error}</p>}
-              <ReCAPTCHA
-                sitekey={siteKey}
-                onChange={(value) => EnableLogin(value)}
-              />
               <button
                 type="submit"
 
                 className="w-full p-2 mt-4 bg-blue-500 text-white rounded-lg font-semibold hover:bg-blue-600 transition disabled:opacity-50 cursor-pointer"
-                disabled={!isVerrified || loading}
+                disabled={loading}
               >
                 {loading ? "Đang đăng nhập..." : t.loginTitle}
               </button>
