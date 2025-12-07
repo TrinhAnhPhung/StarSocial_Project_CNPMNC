@@ -10,7 +10,7 @@ const { sql, connection } = require('../src/Config/SqlConnection.js');
 // Không cần uploadsDir nữa vì đã dùng Cloudinary 
 
 import { toggleLike, addComment, getComments, toggleCommentLike, updatePost, deletePost } from '../controllers/postController.js';
-import { authenticateToken } from '../middlewares/authMiddleware.js';
+import { authenticateToken } from '../middlewares/auth.js';
 import { uploadPostToCloudinary } from '../middlewares/upload.js';
 
 const router = express.Router();

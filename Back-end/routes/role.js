@@ -3,7 +3,7 @@ import { createRequire } from 'module';
 const require = createRequire(import.meta.url);
 
 const router = express.Router();
-import { authenticateToken, authorizeRoles } from '../middlewares/authMiddleware.js';
+import { authenticateToken, authorizeRoles } from '../middlewares/auth.js';
 
 // ✅ Route test phân quyền cho admin
 router.get('/admin-only', authenticateToken, authorizeRoles('admin'), (req, res) => {

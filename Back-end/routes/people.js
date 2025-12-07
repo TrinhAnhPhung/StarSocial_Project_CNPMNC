@@ -4,7 +4,7 @@ const require = createRequire(import.meta.url);
 
 const router = express.Router();
 const { sql, connection } = require('../src/Config/SqlConnection.js');
-import { authenticateToken } from '../middlewares/authMiddleware.js';
+import { authenticateToken } from '../middlewares/auth.js';
 import { toggleFollow, getFollowStatus } from '../controllers/followController.js';
 const jwt = require('jsonwebtoken');
 

@@ -7,7 +7,7 @@ const router = express.Router();
 import * as controller from '../controllers/chatController.js'; // Đảm bảo đường dẫn đúng
 
 // Import middleware xác thực (ĐIỀU CHỈNH ĐƯỜNG DẪN NẾU CẦN)
-import { authenticateToken } from '../middlewares/authenticateToken.js';
+import { authenticateToken } from '../middlewares/auth.js';
 
 /**
  * @route GET /api/conversations/

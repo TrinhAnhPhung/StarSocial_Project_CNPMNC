@@ -4,7 +4,7 @@ const router = express.Router();
 
 // 1. Import các middleware cần thiết
 // ✅ SỬA: Import cả 'authenticateToken' và 'optionalAuth'
-import { authenticateToken, optionalAuth } from '../middlewares/authenticateToken.js'; 
+import { authenticateToken, optionalAuth } from '../middlewares/auth.js'; 
 import { upload } from '../middlewares/upload.js'; 
 
 // 2. Import các controller

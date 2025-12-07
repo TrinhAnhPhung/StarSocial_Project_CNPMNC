@@ -10,7 +10,7 @@ import * as authController from '../controllers/authController.js';
 import { createAdminAccount, updateAdminPassword, updateAllAdminPasswords } from '../controllers/adminController.js';
 
 // Import middleware (Giả sử thư mục middlewares ở cùng cấp với controllers)
-import { authenticateToken } from '../middlewares/authenticateToken.js'; 
+import { authenticateToken } from '../middlewares/auth.js'; 
 // const { authorizeRoles } = require('../middlewares/authenticateToken'); // Bật nếu cần
 
 /* ============================

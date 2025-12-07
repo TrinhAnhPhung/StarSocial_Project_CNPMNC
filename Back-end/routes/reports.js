@@ -7,7 +7,7 @@ const require = createRequire(import.meta.url);
 const { sql, connection } = require('../src/Config/SqlConnection.js');
 
 // Đảm bảo đường dẫn này chính xác
-import { authenticateToken } from '../middlewares/authMiddleware.js'; 
+import { authenticateToken } from '../middlewares/auth.js'; 
 
 // ✅ BƯỚC 1: IMPORT HÀM 'reportPost' TỪ CONTROLLER
 import { reportPost } from '../controllers/reportController.js';

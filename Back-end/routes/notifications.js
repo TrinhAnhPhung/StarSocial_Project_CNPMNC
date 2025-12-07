@@ -5,7 +5,7 @@ const require = createRequire(import.meta.url);
 const router = express.Router();
 const { sql, connection } = require('../src/Config/SqlConnection.js');
 const { notificationConnection } = require('../src/Config/NotificationSqlConnection.js'); 
-import { authenticateToken } from '../middlewares/authMiddleware.js';
+import { authenticateToken } from '../middlewares/auth.js';
 
 const PRIMARY_DB = process.env.DB_Name || 'StarSocial_primary'; 
 

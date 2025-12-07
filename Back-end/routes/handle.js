@@ -1,6 +1,6 @@
         // routes/handle.js
         import express from 'express';
-        import { authenticateToken, authorizeRoles } from '../middlewares/authenticateToken.js';
+        import { authenticateToken, authorizeRoles } from '../middlewares/auth.js';
         import { 
             banPostHandler, 
             getPendingReportsForHandling,
